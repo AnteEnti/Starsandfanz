@@ -8,6 +8,7 @@ import UserProfile from './components/UserProfile';
 import AdminPage from './components/AdminPage';
 import PostCardSkeleton from './components/PostCardSkeleton';
 import ContentModal from './components/ContentModal';
+import InFeedSuggestion from './components/InFeedSuggestion';
 
 const createFanAvatars = (count: number, seed: string) => 
   Array.from({ length: count }, (_, i) => `https://i.pravatar.cc/150?u=${seed}-${i}`);
@@ -387,12 +388,12 @@ const INITIAL_POSTS: Post[] = [
 ];
 
 const INITIAL_SUGGESTIONS: Suggestion[] = [
-  { id: 'sugg-1', name: 'Galactic Echoes Album', avatar: 'https://picsum.photos/seed/album-topic/200', type: SuggestionType.Topic, isFanned: false },
-  { id: 'sugg-2', name: 'Aria Blaze', avatar: 'https://i.pravatar.cc/150?u=aria-blaze', type: SuggestionType.Celeb, isFanned: true },
-  { id: 'sugg-3', name: 'Leo Starlight', avatar: 'https://i.pravatar.cc/150?u=leo-starlight', type: SuggestionType.Celeb, isFanned: false },
+  { id: 'sugg-1', name: 'Galactic Echoes Album', avatar: 'https://picsum.photos/seed/album-topic/200', type: SuggestionType.Topic, isFanned: false, linkedId: MOVIE_GALACTIC_ECHOES_ID },
+  { id: 'sugg-2', name: 'Aria Blaze', avatar: 'https://i.pravatar.cc/150?u=aria-blaze', type: SuggestionType.Celeb, isFanned: true, linkedId: CELEB_ARIA_BLAZE_ID },
+  { id: 'sugg-3', name: 'Leo Starlight', avatar: 'https://i.pravatar.cc/150?u=leo-starlight', type: SuggestionType.Celeb, isFanned: false, linkedId: CELEB_LEO_STARLIGHT_ID },
   { id: 'sugg-4', name: 'World Tour Moments', avatar: 'https://picsum.photos/seed/tour-topic/200', type: SuggestionType.Topic, isFanned: false },
   { id: 'sugg-5', name: 'Behind The Scenes', avatar: 'https://picsum.photos/seed/bts-topic/200', type: SuggestionType.Topic, isFanned: true },
-  { id: 'sugg-6', name: 'Nova Lux', avatar: 'https://i.pravatar.cc/150?u=nova-lux', type: SuggestionType.Celeb, isFanned: false },
+  { id: 'sugg-6', name: 'Nova Lux', avatar: 'https://i.pravatar.cc/150?u=nova-lux', type: SuggestionType.Celeb, isFanned: false, linkedId: CELEB_NOVA_LUX_ID },
 ];
 
 
@@ -410,7 +411,7 @@ const App: React.FC = () => {
   const [isUnfanModalOpen, setIsUnfanModalOpen] = useState(false);
   const [activePost, setActivePost] = useState<Post | null>(null);
   const [suggestionToUnfan, setSuggestionToUnfan] = useState<{ id: string; name: string } | null>(null);
-  const [activeView, setActiveView] = useState<'feed' | 'profile' | 'admin'>('feed');
+  const [activeView, setActiveView] = useState<'feed' | 'profile' | 'admin' | 'favorites'>('feed');
   const [isAdmin] = useState(true); // Dummy admin user
   
   useEffect(() => {
@@ -546,6 +547,40 @@ const App: React.FC = () => {
     ), 
     [posts, userProfile.avatar]
   );
+  
+  const unfannedSuggestions = useMemo(() => suggestions.filter(s => !s.isFanned), [suggestions]);
+
+  const feedItems = useMemo(() => {
+    const items: (Post | { type: 'suggestion'; suggestion: Suggestion })[] = [];
+    let suggestionIndex = 0;
+    posts.forEach((post, index) => {
+        items.push(post);
+        // Inject a suggestion every 4 posts, if available
+        if ((index + 1) % 4 === 0 && suggestionIndex < unfannedSuggestions.length) {
+            items.push({
+                type: 'suggestion',
+                suggestion: unfannedSuggestions[suggestionIndex],
+            });
+            suggestionIndex++;
+        }
+    });
+    return items;
+  }, [posts, unfannedSuggestions]);
+
+  const fannedSuggestionLinkedIds = useMemo(() => 
+    suggestions.filter(s => s.isFanned && s.linkedId).map(s => s.linkedId!),
+  [suggestions]);
+
+  const favoritesFeed = useMemo(() => {
+    if (fannedSuggestionLinkedIds.length === 0) {
+        return [];
+    }
+    return posts.filter(post => {
+        const postLinks = [...(post.linkedCelebrityIds || []), ...(post.linkedMovieIds || [])];
+        if (postLinks.length === 0) return false;
+        return postLinks.some(link => fannedSuggestionLinkedIds.includes(link));
+    });
+  }, [posts, fannedSuggestionLinkedIds]);
 
   return (
     <>
@@ -555,34 +590,77 @@ const App: React.FC = () => {
         userAvatar={userProfile.avatar}
         isAdmin={isAdmin}
       />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 sm:pb-6">
         {activeView === 'feed' && (
           <div className="max-w-2xl mx-auto">
-            <SuggestionCarousel 
-              suggestions={suggestions} 
-              onToggleFan={handleToggleFan}
-              onStartUnfan={handleStartUnfan}
-            />
+            {unfannedSuggestions.length > 0 && (
+              <SuggestionCarousel 
+                suggestions={unfannedSuggestions} 
+                onToggleFan={handleToggleFan}
+                onStartUnfan={handleStartUnfan}
+              />
+            )}
 
             <div className="space-y-6 mt-6">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, index) => <PostCardSkeleton key={index} />)
               ) : (
-                posts.map(post => (
-                  <PostCard 
-                    key={post.id} 
-                    post={post} 
-                    onReaction={handleReaction}
-                    onFanzSay={handleFanzSay}
-                    currentUserAvatar={userProfile.avatar}
-                    onViewFullPost={setActivePost}
-                  />
-                ))
+                feedItems.map((item) => {
+                  if ('id' in item) { // It's a Post
+                    return (
+                      <PostCard 
+                        key={item.id} 
+                        post={item} 
+                        onReaction={handleReaction}
+                        onFanzSay={handleFanzSay}
+                        currentUserAvatar={userProfile.avatar}
+                        onViewFullPost={setActivePost}
+                      />
+                    );
+                  } else { // It's a suggestion
+                    return (
+                      <InFeedSuggestion 
+                        key={`sugg-feed-${item.suggestion.id}`} 
+                        suggestion={item.suggestion} 
+                        onToggleFan={handleToggleFan}
+                      />
+                    );
+                  }
+                })
               )}
             </div>
           </div>
         )}
         
+        {activeView === 'favorites' && (
+          <div className="max-w-2xl mx-auto">
+            <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-rose-400">favorite</span>
+              Your Favorites Feed
+            </h2>
+            {favoritesFeed.length > 0 ? (
+                <div className="space-y-6">
+                    {favoritesFeed.map(post => (
+                        <PostCard 
+                            key={post.id} 
+                            post={post} 
+                            onReaction={handleReaction}
+                            onFanzSay={handleFanzSay}
+                            currentUserAvatar={userProfile.avatar}
+                            onViewFullPost={setActivePost}
+                        />
+                    ))}
+                </div>
+            ) : (
+                <div className="text-center py-20 bg-slate-800 rounded-lg mt-6">
+                    <span className="material-symbols-outlined text-6xl text-slate-500">favorite</span>
+                    <h2 className="mt-4 text-2xl font-bold text-white">Your Feed is Empty</h2>
+                    <p className="mt-2 text-slate-400">Fan some celebrities or topics to see related posts here!</p>
+                </div>
+            )}
+          </div>
+        )}
+
         {activeView === 'profile' && (
           <div className="max-w-2xl mx-auto">
             <UserProfile
@@ -595,6 +673,7 @@ const App: React.FC = () => {
               onFanzSay={handleFanzSay}
               onUpdateProfile={handleUpdateProfile}
               favoriteOptions={{ genres: allGenres, movies: allMovies, stars: allStars }}
+              onViewFullPost={setActivePost}
             />
           </div>
         )}

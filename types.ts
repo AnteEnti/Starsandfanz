@@ -19,6 +19,7 @@ export interface Suggestion {
   avatar: string;
   type: SuggestionType;
   isFanned: boolean;
+  linkedId?: string;
 }
 
 export interface FanzSay {
