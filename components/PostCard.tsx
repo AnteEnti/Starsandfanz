@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useLayoutEffect } from 'react';
 import { Post, ReactionType, FanzSay } from '../types';
 import ReactionButton from './ReactionButton';
 import CommentSection from './CommentSection';
@@ -7,6 +7,7 @@ import { StarIcon } from './icons';
 import { PostType } from '../PostType';
 import CountdownTimer from './CountdownTimer';
 import FilmographyCarousel from './FilmographyCarousel';
+import ContentModal from './ContentModal';
 
 declare const confetti: any;
 
@@ -45,12 +46,41 @@ const AnimatedCommentTeaser: React.FC<{topComments: FanzSay[], totalCount: numbe
 
 const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, currentUserAvatar }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [animatingReaction, setAnimatingReaction] = useState<ReactionType | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [animatingFanzSayId, setAnimatingFanzSayId] = useState<string | null>(null);
   const [isCommentSectionVisible, setIsCommentSectionVisible] = useState(false);
 
   const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+  
+  useLayoutEffect(() => {
+    const checkOverflow = () => {
+        const element = contentRef.current;
+        if (element) {
+            const hasOverflow = element.scrollHeight > element.clientHeight;
+            if (hasOverflow !== isOverflowing) {
+               setIsOverflowing(hasOverflow);
+            }
+        }
+    };
+    // Debounced check for resize and a slight delay for initial render
+    let timeoutId: number;
+    const debouncedCheck = () => {
+      clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(checkOverflow, 50);
+    }
+    
+    debouncedCheck(); // Initial check
+    window.addEventListener('resize', debouncedCheck);
+
+    return () => {
+        clearTimeout(timeoutId);
+        window.removeEventListener('resize', debouncedCheck);
+    };
+  }, [post.id, isExpanded, isOverflowing]); // Rerun on key changes
 
   const { totalFanzSaysCount, topComments } = useMemo(() => {
     const count = post.fanzSays?.reduce((acc, fs) => acc + fs.fans.length, 0) || 0;
@@ -341,116 +371,136 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
   ].includes(post.type);
 
   return (
-    <div className="relative bg-slate-800 rounded-xl shadow-2xl overflow-hidden w-full border border-slate-700 max-h-[780px] flex flex-col">
-      <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none z-20" aria-hidden="true"></canvas>
-      
-       {/* Static Header */}
-      <div className="p-5 flex-shrink-0">
-        {hasEventHeader && renderEventHeader()}
-        <div className="flex items-center mt-4">
-          <img className="h-12 w-12 rounded-full border-2 border-slate-600" src={post.avatar} alt={post.author} />
-          <div className="ml-4">
-            <div className="text-lg font-semibold text-white">{post.author}</div>
-            <div className="text-sm text-slate-400">{post.timestamp}</div>
+    <>
+      <div className="relative bg-slate-800 rounded-xl shadow-2xl overflow-hidden w-full border border-slate-700 max-h-[780px] flex flex-col">
+        <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none z-20" aria-hidden="true"></canvas>
+        
+        {/* Static Header */}
+        <div className="p-5 flex-shrink-0">
+          {hasEventHeader && renderEventHeader()}
+          <div className="flex items-center mt-4">
+            <img className="h-12 w-12 rounded-full border-2 border-slate-600" src={post.avatar} alt={post.author} />
+            <div className="ml-4">
+              <div className="text-lg font-semibold text-white">{post.author}</div>
+              <div className="text-sm text-slate-400">{post.timestamp}</div>
+            </div>
           </div>
         </div>
-      </div>
-      
-       {/* Scrollable Body */}
-      <div className="flex-1 overflow-y-auto scrollbar-hide px-5 pb-5">
-        <p className="text-slate-300 mb-4 whitespace-pre-wrap">
-          {isLongContent && !isExpanded
-            ? `${post.content.substring(0, CONTENT_TRUNCATE_LENGTH)}...`
-            : post.content}
-          {isLongContent && (
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="inline bg-transparent border-none p-0 text-purple-400 hover:text-purple-300 font-semibold text-sm ml-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-800 rounded"
-              aria-expanded={isExpanded}
+        
+        {/* Clipped Body */}
+        <div ref={contentRef} className="flex-1 overflow-hidden px-5 pb-5 relative">
+          <p className="text-slate-300 mb-4 whitespace-pre-wrap">
+            {isLongContent && !isExpanded
+              ? `${post.content.substring(0, CONTENT_TRUNCATE_LENGTH)}...`
+              : post.content}
+            {isLongContent && (
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="inline bg-transparent border-none p-0 text-purple-400 hover:text-purple-300 font-semibold text-sm ml-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-800 rounded"
+                aria-expanded={isExpanded}
+              >
+                {isExpanded ? 'Read Less' : 'Read More'}
+              </button>
+            )}
+          </p>
+          {renderPostContent()}
+
+          {isOverflowing && (
+             <div 
+              className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-slate-800 to-transparent flex items-end justify-center pb-4 pointer-events-none"
+              aria-hidden="true"
             >
-              {isExpanded ? 'Read Less' : 'Read More'}
-            </button>
-          )}
-        </p>
-        {renderPostContent()}
-      </div>
-
-       {/* Static Countdown Footer (special case) */}
-      {post.type === PostType.Countdown && post.countdownDetails && (
-        <div className="px-5 pb-5 flex-shrink-0">
-          <a
-            href={post.countdownDetails.bookingUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`block w-full text-center font-bold py-3 px-6 rounded-full transition duration-300 text-lg ${
-              new Date() > new Date(post.countdownDetails.targetDate) ? 'bg-amber-500 hover:bg-amber-600' : 'bg-purple-600 hover:bg-purple-700'
-            } text-white`}
-          >
-            {new Date() > new Date(post.countdownDetails.targetDate) ? "Now Showing!" : "Book Tickets Now"}
-          </a>
-        </div>
-      )}
-
-      {/* Static Main Footer */}
-      <div className="p-5 flex-shrink-0 border-t border-slate-700 bg-slate-800">
-        <div className="flex items-center justify-between pb-3 border-b-2 border-slate-700">
-            {Object.values(ReactionType).map(reaction => (
-              <ReactionButton
-                key={reaction}
-                type={reaction}
-                count={post.reactions[reaction] || 0}
-                onClick={() => handleReactionClick(post.id, reaction)}
-                isAnimating={animatingReaction === reaction}
-              />
-            ))}
-        </div>
-
-        {isCommentSectionVisible ? (
-          <>
-            <div className="flex items-center justify-between mt-4">
-                <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Fanz Says ({totalFanzSaysCount.toLocaleString()})</h4>
-                <button 
-                    onClick={() => setIsCommentSectionVisible(false)}
-                    className="text-xs text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1"
-                    aria-label="Hide comments"
-                >
-                    <span className="material-symbols-outlined text-base">unfold_less</span>
-                    Hide
-                </button>
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="pointer-events-auto bg-slate-900/80 backdrop-blur-sm text-white font-semibold py-2 px-4 rounded-full flex items-center gap-2 transition-transform hover:scale-105 shadow-lg"
+              >
+                <span className="material-symbols-outlined text-base">fullscreen</span>
+                View Full Post
+              </button>
             </div>
-            <CommentSection
-                fanzSays={post.fanzSays}
-                onFanzSay={(fanzSayId) => handleFanzSayClick(post.id, fanzSayId)}
-                currentUserAvatar={currentUserAvatar}
-                animatingFanzSayId={animatingFanzSayId}
-            />
-          </>
-        ) : (
-          <div onClick={() => setIsCommentSectionVisible(true)} aria-hidden="true">
-             {topComments.length > 0 ? (
-                <AnimatedCommentTeaser topComments={topComments} totalCount={totalFanzSaysCount} />
-             ) : (
-                <div className="mt-4">
-                    <button
-                        className="w-full text-left bg-slate-700/50 hover:bg-slate-700 p-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        aria-label="Show comments"
-                    >
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm text-slate-400">
-                                Be the first to say something!
-                            </span>
-                            <span className="text-sm font-semibold text-purple-300 flex items-center gap-1">
-                                Comments
-                                <span className="material-symbols-outlined text-base">chat_bubble</span>
-                            </span>
-                        </div>
-                    </button>
-                </div>
-             )}
+          )}
+        </div>
+
+        {/* Static Countdown Footer (special case) */}
+        {post.type === PostType.Countdown && post.countdownDetails && (
+          <div className="px-5 pb-5 flex-shrink-0">
+            <a
+              href={post.countdownDetails.bookingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`block w-full text-center font-bold py-3 px-6 rounded-full transition duration-300 text-lg ${
+                new Date() > new Date(post.countdownDetails.targetDate) ? 'bg-amber-500 hover:bg-amber-600' : 'bg-purple-600 hover:bg-purple-700'
+              } text-white`}
+            >
+              {new Date() > new Date(post.countdownDetails.targetDate) ? "Now Showing!" : "Book Tickets Now"}
+            </a>
           </div>
         )}
+
+        {/* Static Main Footer */}
+        <div className="p-5 flex-shrink-0 border-t border-slate-700 bg-slate-800">
+          <div className="flex items-center justify-between pb-3 border-b-2 border-slate-700">
+              {Object.values(ReactionType).map(reaction => (
+                <ReactionButton
+                  key={reaction}
+                  type={reaction}
+                  count={post.reactions[reaction] || 0}
+                  onClick={() => handleReactionClick(post.id, reaction)}
+                  isAnimating={animatingReaction === reaction}
+                />
+              ))}
+          </div>
+
+          {isCommentSectionVisible ? (
+            <>
+              <div className="flex items-center justify-between mt-4">
+                  <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Fanz Says ({totalFanzSaysCount.toLocaleString()})</h4>
+                  <button 
+                      onClick={() => setIsCommentSectionVisible(false)}
+                      className="text-xs text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1"
+                      aria-label="Hide comments"
+                  >
+                      <span className="material-symbols-outlined text-base">unfold_less</span>
+                      Hide
+                  </button>
+              </div>
+              <CommentSection
+                  fanzSays={post.fanzSays}
+                  onFanzSay={(fanzSayId) => handleFanzSayClick(post.id, fanzSayId)}
+                  currentUserAvatar={currentUserAvatar}
+                  animatingFanzSayId={animatingFanzSayId}
+              />
+            </>
+          ) : (
+            <div onClick={() => setIsCommentSectionVisible(true)} aria-hidden="true">
+              {topComments.length > 0 ? (
+                  <AnimatedCommentTeaser topComments={topComments} totalCount={totalFanzSaysCount} />
+              ) : (
+                  <div className="mt-4">
+                      <button
+                          className="w-full text-left bg-slate-700/50 hover:bg-slate-700 p-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          aria-label="Show comments"
+                      >
+                          <div className="flex items-center justify-between">
+                              <span className="text-sm text-slate-400">
+                                  Be the first to say something!
+                              </span>
+                              <span className="text-sm font-semibold text-purple-300 flex items-center gap-1">
+                                  Comments
+                                  <span className="material-symbols-outlined text-base">chat_bubble</span>
+                              </span>
+                          </div>
+                      </button>
+                  </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+      {isModalOpen && (
+        <ContentModal post={post} onClose={() => setIsModalOpen(false)} />
+      )}
+    </>
   );
 };
 
