@@ -7,6 +7,7 @@ import Modal from './components/Modal';
 import UserProfile from './components/UserProfile';
 import AdminPage from './components/AdminPage';
 import PostCardSkeleton from './components/PostCardSkeleton';
+import ContentModal from './components/ContentModal';
 
 const createFanAvatars = (count: number, seed: string) => 
   Array.from({ length: count }, (_, i) => `https://i.pravatar.cc/150?u=${seed}-${i}`);
@@ -407,6 +408,7 @@ const App: React.FC = () => {
     favoriteGenres: ['Sci-Fi', 'Thriller'],
   });
   const [isUnfanModalOpen, setIsUnfanModalOpen] = useState(false);
+  const [activePost, setActivePost] = useState<Post | null>(null);
   const [suggestionToUnfan, setSuggestionToUnfan] = useState<{ id: string; name: string } | null>(null);
   const [activeView, setActiveView] = useState<'feed' | 'profile' | 'admin'>('feed');
   const [isAdmin] = useState(true); // Dummy admin user
@@ -573,6 +575,7 @@ const App: React.FC = () => {
                     onReaction={handleReaction}
                     onFanzSay={handleFanzSay}
                     currentUserAvatar={userProfile.avatar}
+                    onViewFullPost={setActivePost}
                   />
                 ))
               )}
@@ -615,6 +618,16 @@ const App: React.FC = () => {
         >
           <p>Are you sure you want to un-fan <strong className="text-purple-300">{suggestionToUnfan.name}</strong>?</p>
         </Modal>
+      )}
+
+      {activePost && (
+        <ContentModal 
+          post={activePost}
+          onClose={() => setActivePost(null)}
+          onReaction={handleReaction}
+          onFanzSay={handleFanzSay}
+          currentUserAvatar={userProfile.avatar}
+        />
       )}
     </>
   );

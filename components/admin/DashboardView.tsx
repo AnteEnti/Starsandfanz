@@ -59,10 +59,15 @@ interface DashboardViewProps {
 const DashboardView: React.FC<DashboardViewProps> = ({ posts }) => {
   const totalReactions = useMemo(() => 
     posts.reduce((acc, post) => {
-      // Fix for: Operator '+' cannot be applied to types 'unknown' and 'number'.
-      // The `count` from `Object.values` can be of type `unknown`, so we need to safely cast it to a number.
+      // FIX: Safely handle potential `unknown` type from `Object.values` before summing.
       const postReactionTotal = Object.values(post.reactions).reduce(
-        (sum, count) => sum + (Number(count) || 0),
+        (sum, count) => {
+          const numCount = Number(count);
+          if (!isNaN(numCount)) {
+            return sum + numCount;
+          }
+          return sum;
+        },
         0
       );
       return acc + postReactionTotal;

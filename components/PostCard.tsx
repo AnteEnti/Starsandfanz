@@ -7,7 +7,6 @@ import { StarIcon } from './icons';
 import { PostType } from '../PostType';
 import CountdownTimer from './CountdownTimer';
 import FilmographyCarousel from './FilmographyCarousel';
-import ContentModal from './ContentModal';
 
 declare const confetti: any;
 
@@ -16,6 +15,7 @@ interface PostCardProps {
   onReaction: (postId: string, reactionType: ReactionType) => void;
   onFanzSay: (postId: string, fanzSayId: string) => void;
   currentUserAvatar: string;
+  onViewFullPost: (post: Post) => void;
 }
 
 const CONTENT_TRUNCATE_LENGTH = 300;
@@ -44,11 +44,10 @@ const AnimatedCommentTeaser: React.FC<{topComments: FanzSay[], totalCount: numbe
     </div>
 );
 
-const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, currentUserAvatar }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, currentUserAvatar, onViewFullPost }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [isOverflowing, setIsOverflowing] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [animatingReaction, setAnimatingReaction] = useState<ReactionType | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [animatingFanzSayId, setAnimatingFanzSayId] = useState<string | null>(null);
@@ -372,7 +371,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
 
   return (
     <>
-      <div className="relative bg-slate-800 rounded-xl shadow-2xl overflow-hidden w-full border border-slate-700 max-h-[780px] flex flex-col">
+      <div id={`post-card-${post.id}`} className="relative bg-slate-800 rounded-xl shadow-2xl overflow-hidden w-full border border-slate-700 max-h-[780px] flex flex-col">
         <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none z-20" aria-hidden="true"></canvas>
         
         {/* Static Header */}
@@ -411,7 +410,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
               aria-hidden="true"
             >
               <button 
-                onClick={() => setIsModalOpen(true)}
+                onClick={() => onViewFullPost(post)}
                 className="pointer-events-auto bg-slate-900/80 backdrop-blur-sm text-white font-semibold py-2 px-4 rounded-full flex items-center gap-2 transition-transform hover:scale-105 shadow-lg"
               >
                 <span className="material-symbols-outlined text-base">fullscreen</span>
@@ -497,9 +496,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
           )}
         </div>
       </div>
-      {isModalOpen && (
-        <ContentModal post={post} onClose={() => setIsModalOpen(false)} />
-      )}
     </>
   );
 };

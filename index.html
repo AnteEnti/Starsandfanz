@@ -62,19 +62,29 @@
         animation: comment-fade-in-up 0.5s ease-out forwards;
         opacity: 0; /* Start hidden */
       }
-      @keyframes fade-in {
+      @keyframes modal-fade-in {
         from { opacity: 0; }
         to { opacity: 1; }
       }
-      .animate-fade-in {
-        animation: fade-in 0.3s ease-out forwards;
-      }
-      @keyframes zoom-in {
-        from { transform: scale(0.9); opacity: 0; }
+      @keyframes modal-zoom-in {
+        from { transform: scale(0.95); opacity: 0; }
         to { transform: scale(1); opacity: 1; }
       }
-      .animate-zoom-in {
-        animation: zoom-in 0.3s ease-out forwards;
+      @keyframes modal-zoom-out {
+        from { transform: scale(1); opacity: 1; }
+        to { transform: scale(0.95); opacity: 0; }
+      }
+      .animate-modal-bg-enter {
+        animation: modal-fade-in 0.3s ease-out forwards;
+      }
+      .animate-modal-bg-exit {
+        animation: modal-fade-in 0.3s ease-out forwards reverse;
+      }
+      .animate-modal-content-enter {
+        animation: modal-zoom-in 0.3s ease-out forwards;
+      }
+      .animate-modal-content-exit {
+        animation: modal-zoom-out 0.3s ease-out forwards;
       }
     </style>
   <script type="importmap">
