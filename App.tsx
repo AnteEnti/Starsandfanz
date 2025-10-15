@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Post, ReactionType, Suggestion, SuggestionType, PostType, FanzSay, UserProfileData } from './types';
 import Header from './components/Header';
 import PostCard from './components/PostCard';
@@ -6,11 +6,76 @@ import SuggestionCarousel from './components/SuggestionCarousel';
 import Modal from './components/Modal';
 import UserProfile from './components/UserProfile';
 import AdminPage from './components/AdminPage';
+import PostCardSkeleton from './components/PostCardSkeleton';
 
 const createFanAvatars = (count: number, seed: string) => 
   Array.from({ length: count }, (_, i) => `https://i.pravatar.cc/150?u=${seed}-${i}`);
 
+// Define IDs for linking
+const MOVIE_KIREETAM_ID = 'movie-kireetam';
+const MOVIE_CHRONOS_PROPHECY_ID = 'movie-chronos-prophecy';
+const MOVIE_AETHELGARDS_LEGACY_ID = 'movie-aethelgards-legacy';
+const MOVIE_GALACTIC_ECHOES_ID = 'movie-galactic-echoes';
+const CELEB_TELUGU_SUPERSTAR_ID = 'celeb-telugu-superstar';
+const CELEB_LEO_STARLIGHT_ID = 'celeb-leo-starlight';
+const CELEB_ARIA_BLAZE_ID = 'celeb-aria-blaze';
+const CELEB_NOVA_LUX_ID = 'celeb-nova-lux';
+
+
 const INITIAL_POSTS: Post[] = [
+  {
+    id: 'post-telugu-project-1',
+    type: PostType.ProjectAnnouncement,
+    author: 'స్టార్ స్పియర్ అడ్మిన్',
+    avatar: 'https://i.pravatar.cc/150?u=admin',
+    timestamp: 'ఇప్పుడే',
+    content: "అభిమానులారా, సిద్ధంగా ఉండండి! మా తదుపరి భారీ చిత్రం 'కిరీటం' యొక్క అధికారిక ప్రకటన. ఒక పురాణ గాథ మీ ముందుకు రాబోతోంది.",
+    eventDetails: {
+      title: "కొత్త ప్రాజెక్ట్ ప్రకటన",
+    },
+    projectAnnouncementDetails: {
+      title: "కిరీటం",
+      posterUrl: 'https://picsum.photos/seed/kireetam-poster/800/1200',
+      status: 'ప్రస్తుతం నిర్మాణంలో ఉంది',
+      expectedRelease: '2025 లో వస్తోంది',
+      crew: 'దూరదృష్టి గల దర్శకుడు ఎలారా వాన్స్ నుండి',
+      logline: 'కాలగర్భంలో కలిసిపోయిన ఒక రాజ్యాన్ని తిరిగి పొందేందుకు ఒక వీరుడు చేసే ప్రయాణం.',
+    },
+    reactions: {
+      [ReactionType.Celebrate]: 18000,
+      [ReactionType.Love]: 15000,
+    },
+    fanzSays: [
+      { id: 'sc-telugu-pa-1', text: "అద్భుతం! 🔥", fans: createFanAvatars(18, 'telugu-pa1') },
+      { id: 'sc-telugu-pa-2', text: "వేచి ఉండలేము!", fans: createFanAvatars(12, 'telugu-pa2') },
+      { id: 'sc-telugu-pa-3', text: 'ఇది బ్లాక్ బస్టర్ అవుతుంది!', fans: createFanAvatars(10, 'telugu-pa3') },
+      { id: 'sc-telugu-pa-4', text: 'జై సినిమా!', fans: [] },
+    ],
+    linkedMovieIds: [MOVIE_KIREETAM_ID],
+  },
+  {
+    id: 'post-telugu-bday-1',
+    type: PostType.Birthday,
+    author: 'స్టార్ స్పియర్ అడ్మిన్',
+    avatar: 'https://i.pravatar.cc/150?u=admin',
+    timestamp: '2 గంటల క్రితం',
+    content: "మన ప్రియమైన సూపర్ స్టార్ కి పుట్టినరోజు శుభాకాంక్షలు! మీ నటన మరియు కృషి మాకు ఎల్లప్పుడూ స్ఫూర్తినిస్తాయి. మీ శుభాకాంక్షలను క్రింద కామెంట్స్ లో తెలియజేయండి! 🎂",
+    eventDetails: {
+      title: "హ్యాపీ బర్త్ డే, సూపర్ స్టార్!",
+    },
+    imageUrl: 'https://picsum.photos/seed/telugu-bday/800/500',
+    reactions: {
+      [ReactionType.Celebrate]: 22000,
+      [ReactionType.Love]: 19500,
+    },
+    fanzSays: [
+      { id: 'sc-telugu-bday-1', text: 'పుట్టినరోజు శుభాకాంక్షలు! 🎉', fans: createFanAvatars(28, 'telugu-bday1') },
+      { id: 'sc-telugu-bday-2', text: 'జై రెబెల్ స్టార్!', fans: createFanAvatars(22, 'telugu-bday2') },
+      { id: 'sc-telugu-bday-3', text: 'మీరు ఎల్లప్పుడూ బాగుండాలి!', fans: createFanAvatars(15, 'telugu-bday3') },
+      { id: 'sc-telugu-bday-4', text: 'స్టే బ్లెస్డ్!', fans: [] },
+    ],
+    linkedCelebrityIds: [CELEB_TELUGU_SUPERSTAR_ID],
+  },
     {
     id: 'post-award-1',
     type: PostType.Awards,
@@ -26,7 +91,9 @@ const INITIAL_POSTS: Post[] = [
       awardFor: "'Chronos Prophecy'",
       event: 'Golden Globe Awards',
       year: 2024,
-      imageUrl: 'https://picsum.photos/seed/goldenglobe/200/200'
+      imageUrl: 'https://picsum.photos/seed/goldenglobe/200/200',
+      linkedMovieId: MOVIE_CHRONOS_PROPHECY_ID,
+      linkedCelebrityId: CELEB_LEO_STARLIGHT_ID,
     },
     reactions: {
       [ReactionType.Celebrate]: 25000,
@@ -38,6 +105,8 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-award-3', text: 'Legendary Performance!', fans: createFanAvatars(6, 'award3') },
       { id: 'sc-award-4', text: 'King for a reason! 👑', fans: [] },
     ],
+    linkedMovieIds: [MOVIE_CHRONOS_PROPHECY_ID],
+    linkedCelebrityIds: [CELEB_LEO_STARLIGHT_ID],
   },
    {
     id: 'post-project-announce-1',
@@ -67,6 +136,7 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-pa-3', text: 'This sounds epic!', fans: createFanAvatars(9, 'pa3') },
       { id: 'sc-pa-4', text: 'Another masterpiece incoming!', fans: [] },
     ],
+    linkedMovieIds: [MOVIE_AETHELGARDS_LEGACY_ID],
   },
   {
     id: 'post-countdown-1',
@@ -93,6 +163,7 @@ const INITIAL_POSTS: Post[] = [
         { id: 'sc-cd-3', text: 'This will be epic!', fans: createFanAvatars(7, 'cd3') },
         { id: 'sc-cd-4', text: 'Already booked tickets!', fans: [] },
     ],
+    linkedMovieIds: [MOVIE_GALACTIC_ECHOES_ID],
   },
    {
     id: 'post-filmography-1',
@@ -119,6 +190,36 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-film-3', text: 'What a filmography!', fans: createFanAvatars(4, 'film3') },
       { id: 'sc-film-4', text: 'An absolute legend!', fans: [] },
     ],
+    linkedCelebrityIds: [CELEB_LEO_STARLIGHT_ID],
+  },
+   {
+    id: 'post-celeb-1',
+    type: PostType.Celebrity,
+    author: 'Star Sphere Admin',
+    avatar: 'https://i.pravatar.cc/150?u=admin',
+    timestamp: '1 day ago',
+    content: "Celebrating a true icon of the silver screen! Let's take a closer look at the career of the legendary Leo Starlight.",
+    eventDetails: {
+      title: "Celebrity Spotlight",
+    },
+    celebrityDetails: {
+      id: CELEB_LEO_STARLIGHT_ID,
+      name: 'Leo Starlight',
+      imageUrl: 'https://i.pravatar.cc/500?u=leo-starlight-spotlight',
+      knownFor: 'Actor, Producer, Philanthropist',
+      bio: "A versatile actor known for his captivating performances, Leo Starlight has graced the screen for over two decades, winning numerous accolades and the hearts of fans worldwide. His dedication to his craft is matched only by his commitment to environmental causes.",
+      notableWorks: ['Chronos Prophecy', 'Crimson Tide', 'Echoes of a Dream', 'Neon Shadows'],
+      birthDate: '1974-11-11',
+    },
+    reactions: {
+      [ReactionType.Love]: 22000,
+      [ReactionType.Celebrate]: 14000,
+    },
+    fanzSays: [
+      { id: 'sc-celeb-1', text: 'The GOAT! 🐐', fans: createFanAvatars(10, 'celeb1') },
+      { id: 'sc-celeb-2', text: 'An inspiration!', fans: createFanAvatars(7, 'celeb2') },
+      { id: 'sc-celeb-3', text: 'Legend!', fans: [] },
+    ],
   },
   {
     id: 'post-bday-1',
@@ -140,6 +241,7 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-bday-3', text: 'Have a great year ahead!', fans: createFanAvatars(11, 'bday3') },
       { id: 'sc-bday-4', text: 'Stay blessed!', fans: [] },
     ],
+    linkedCelebrityIds: [CELEB_LEO_STARLIGHT_ID],
   },
   {
     id: 'post-trailer-1',
@@ -160,6 +262,7 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-trailer-3', text: 'That is Awesome! ✨', fans: createFanAvatars(2, 'trailer3') },
       { id: 'sc-trailer-4', text: 'Instant Blockbuster!', fans: [] },
     ],
+    linkedMovieIds: [MOVIE_GALACTIC_ECHOES_ID],
   },
   {
     id: 'post-anniv-1',
@@ -182,6 +285,7 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-anniv-3', text: 'Time for a re-watch!', fans: createFanAvatars(3, 'anniv3') },
       { id: 'sc-anniv-4', text: 'Changed my life!', fans: [] },
     ],
+    linkedMovieIds: [MOVIE_CHRONOS_PROPHECY_ID],
   },
   {
     id: 'post-announce-1',
@@ -210,6 +314,7 @@ const INITIAL_POSTS: Post[] = [
       title: "Movie Deep Dive",
     },
     movieDetails: {
+      id: MOVIE_CHRONOS_PROPHECY_ID,
       title: 'Chronos Prophecy',
       posterUrl: 'https://picsum.photos/seed/chronos-prophecy-poster/500/750',
       rating: 8.7,
@@ -245,6 +350,7 @@ const INITIAL_POSTS: Post[] = [
       bio: "A former colleague of the protagonist, Ozes Ghambira was consumed by his ambition to correct a past tragedy. His manipulation of time is driven by a desperate, albeit misguided, desire to rewrite his own history, making him a formidable and sympathetic foe.",
       keyTraits: ['Brilliant', 'Ruthless', 'Obsessed', 'Tragic'],
       firstAppearance: "'Chronos Prophecy' (2019)",
+      linkedMovieId: MOVIE_CHRONOS_PROPHECY_ID,
     },
     reactions: {
       [ReactionType.Love]: 9200,
@@ -255,6 +361,8 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-char-2', text: 'Best villain ever!', fans: createFanAvatars(5, 'char2') },
       { id: 'sc-char-3', text: 'More of a tragic hero.', fans: [] },
     ],
+    linkedMovieIds: [MOVIE_CHRONOS_PROPHECY_ID],
+    linkedCelebrityIds: [CELEB_LEO_STARLIGHT_ID, CELEB_ARIA_BLAZE_ID, CELEB_NOVA_LUX_ID],
   },
    {
     id: 'post-1',
@@ -288,7 +396,8 @@ const INITIAL_SUGGESTIONS: Suggestion[] = [
 
 
 const App: React.FC = () => {
-  const [posts, setPosts] = useState<Post[]>(INITIAL_POSTS);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [suggestions, setSuggestions] = useState<Suggestion[]>(INITIAL_SUGGESTIONS);
   const [userProfile, setUserProfile] = useState<UserProfileData>({
     name: 'Leo Fan',
@@ -302,6 +411,16 @@ const App: React.FC = () => {
   const [activeView, setActiveView] = useState<'feed' | 'profile' | 'admin'>('feed');
   const [isAdmin] = useState(true); // Dummy admin user
   
+  useEffect(() => {
+    // Simulate fetching posts from an API
+    const timer = setTimeout(() => {
+      setPosts(INITIAL_POSTS);
+      setIsLoading(false);
+    }, 1500); // 1.5 second delay
+
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleUpdateProfile = useCallback((newProfile: UserProfileData) => {
     setUserProfile(newProfile);
   }, []);
@@ -343,7 +462,16 @@ const App: React.FC = () => {
       ...postData,
     };
     setPosts(prevPosts => [newPost, ...prevPosts]);
-    setActiveView('feed'); // Switch back to feed after posting
+  }, []);
+  
+  const handleUpdatePost = useCallback((updatedPost: Post) => {
+    setPosts(prevPosts =>
+      prevPosts.map(p => (p.id === updatedPost.id ? { ...updatedPost, timestamp: 'Edited' } : p))
+    );
+  }, []);
+
+  const handleDeletePost = useCallback((postId: string) => {
+    setPosts(prevPosts => prevPosts.filter(p => p.id !== postId));
   }, []);
 
   const handleToggleFan = useCallback((suggestionId: string) => {
@@ -425,9 +553,9 @@ const App: React.FC = () => {
         userAvatar={userProfile.avatar}
         isAdmin={isAdmin}
       />
-      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {activeView === 'feed' && (
-          <>
+          <div className="max-w-2xl mx-auto">
             <SuggestionCarousel 
               suggestions={suggestions} 
               onToggleFan={handleToggleFan}
@@ -435,35 +563,46 @@ const App: React.FC = () => {
             />
 
             <div className="space-y-6 mt-6">
-              {posts.map(post => (
-                <PostCard 
-                  key={post.id} 
-                  post={post} 
-                  onReaction={handleReaction}
-                  onFanzSay={handleFanzSay}
-                  currentUserAvatar={userProfile.avatar}
-                />
-              ))}
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, index) => <PostCardSkeleton key={index} />)
+              ) : (
+                posts.map(post => (
+                  <PostCard 
+                    key={post.id} 
+                    post={post} 
+                    onReaction={handleReaction}
+                    onFanzSay={handleFanzSay}
+                    currentUserAvatar={userProfile.avatar}
+                  />
+                ))
+              )}
             </div>
-          </>
+          </div>
         )}
         
         {activeView === 'profile' && (
-          <UserProfile
-            user={userProfile}
-            fannedItems={fannedSuggestions}
-            interactedPosts={interactedPosts}
-            onToggleFan={handleToggleFan}
-            onStartUnfan={handleStartUnfan}
-            onReaction={handleReaction}
-            onFanzSay={handleFanzSay}
-            onUpdateProfile={handleUpdateProfile}
-            favoriteOptions={{ genres: allGenres, movies: allMovies, stars: allStars }}
-          />
+          <div className="max-w-2xl mx-auto">
+            <UserProfile
+              user={userProfile}
+              fannedItems={fannedSuggestions}
+              interactedPosts={interactedPosts}
+              onToggleFan={handleToggleFan}
+              onStartUnfan={handleStartUnfan}
+              onReaction={handleReaction}
+              onFanzSay={handleFanzSay}
+              onUpdateProfile={handleUpdateProfile}
+              favoriteOptions={{ genres: allGenres, movies: allMovies, stars: allStars }}
+            />
+          </div>
         )}
 
         {activeView === 'admin' && isAdmin && (
-          <AdminPage onAddPost={handleAddPost} />
+          <AdminPage 
+            posts={posts}
+            onAddPost={handleAddPost}
+            onUpdatePost={handleUpdatePost}
+            onDeletePost={handleDeletePost}
+          />
         )}
       </main>
       

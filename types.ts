@@ -28,6 +28,7 @@ export interface FanzSay {
 }
 
 export interface MovieDetails {
+  id: string;
   title: string;
   posterUrl: string;
   rating: number; // e.g., 8.7
@@ -44,6 +45,8 @@ export interface CharacterDetails {
   bio: string;
   keyTraits: string[];
   firstAppearance: string;
+  linkedMovieId?: string;
+  linkedCelebrityId?: string;
 }
 
 export interface CountdownDetails {
@@ -66,6 +69,8 @@ export interface AwardDetails {
   event: string;
   year: number;
   imageUrl?: string;
+  linkedMovieId?: string;
+  linkedCelebrityId?: string;
 }
 
 export interface ProjectAnnouncementDetails {
@@ -75,6 +80,16 @@ export interface ProjectAnnouncementDetails {
   expectedRelease: string; // e.g., "Coming 2025"
   crew: string; // e.g., "From the director of 'Chronos Prophecy'"
   logline: string;
+}
+
+export interface CelebrityDetails {
+  id: string;
+  name: string;
+  imageUrl: string;
+  knownFor: string;
+  bio: string;
+  notableWorks: string[];
+  birthDate: string; // ISO 8601 format date
 }
 
 
@@ -98,8 +113,11 @@ export interface Post {
   filmographyDetails?: FilmographyItem[];
   awardDetails?: AwardDetails;
   projectAnnouncementDetails?: ProjectAnnouncementDetails;
+  celebrityDetails?: CelebrityDetails;
   reactions: { [key in ReactionType]?: number };
   fanzSays?: FanzSay[];
+  linkedMovieIds?: string[];
+  linkedCelebrityIds?: string[];
 }
 
 export interface UserProfileData {

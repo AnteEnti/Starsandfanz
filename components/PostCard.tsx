@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { Post, ReactionType } from '../types';
+import React, { useRef, useState, useMemo } from 'react';
+import { Post, ReactionType, FanzSay } from '../types';
 import ReactionButton from './ReactionButton';
 import CommentSection from './CommentSection';
 import VideoPlayer from './VideoPlayer';
@@ -19,12 +19,44 @@ interface PostCardProps {
 
 const CONTENT_TRUNCATE_LENGTH = 300;
 
+const AnimatedCommentTeaser: React.FC<{topComments: FanzSay[], totalCount: number}> = ({ topComments, totalCount }) => (
+    <div className="space-y-2 mt-3 cursor-pointer group">
+        {topComments.map((comment, index) => (
+            <div 
+                key={comment.id} 
+                className="bg-slate-700/50 rounded-lg p-2 flex items-center gap-3 animate-comment-teaser"
+                style={{ animationDelay: `${index * 150}ms`}}
+            >
+                <div className="flex -space-x-2 flex-shrink-0">
+                    {comment.fans.slice(0, 2).map((fan, i) => (
+                        <img key={i} src={fan} alt="fan" className="w-6 h-6 rounded-full ring-2 ring-slate-800" />
+                    ))}
+                </div>
+                <p className="text-sm text-slate-400 truncate italic">
+                    <span className="font-bold text-purple-300 not-italic">{comment.fans.length} fans</span> say: "{comment.text}"
+                </p>
+            </div>
+        ))}
+        <p className="text-sm text-purple-300 font-semibold text-center pt-2 group-hover:underline">
+            View all {totalCount.toLocaleString()} Fanz Says...
+        </p>
+    </div>
+);
+
 const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, currentUserAvatar }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [animatingReaction, setAnimatingReaction] = useState<ReactionType | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [animatingFanzSayId, setAnimatingFanzSayId] = useState<string | null>(null);
+  const [isCommentSectionVisible, setIsCommentSectionVisible] = useState(false);
 
   const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+  const { totalFanzSaysCount, topComments } = useMemo(() => {
+    const count = post.fanzSays?.reduce((acc, fs) => acc + fs.fans.length, 0) || 0;
+    const top = post.fanzSays?.filter(fs => fs.fans.length > 0).sort((a, b) => b.fans.length - a.fans.length).slice(0, 2) || [];
+    return { totalFanzSaysCount: count, topComments: top };
+  }, [post.fanzSays]);
 
   const triggerConfetti = () => {
     if (canvasRef.current) {
@@ -48,6 +80,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
       setTimeout(() => setAnimatingReaction(null), 1000); // Duration of the animation
     }
   };
+
+  const handleFanzSayClick = (postId: string, fanzSayId: string) => {
+    onFanzSay(postId, fanzSayId);
+    setAnimatingFanzSayId(fanzSayId);
+    setTimeout(() => {
+      setAnimatingFanzSayId(null);
+    }, 600); // Animation duration should match CSS
+  };
   
   const isLongContent = post.content.length > CONTENT_TRUNCATE_LENGTH;
 
@@ -62,8 +102,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
         );
       case PostType.Image:
       case PostType.Anniversary:
-        return post.imageUrl ? <img className="w-full h-auto object-cover" src={post.imageUrl} alt="Post content" /> : null;
-      // FIX: Add block scope to prevent variable redeclaration errors.
+        return post.imageUrl ? <img className="w-full h-auto object-cover rounded-lg" src={post.imageUrl} alt="Post content" /> : null;
+      
       case PostType.MovieDetails: {
         if (!post.movieDetails) return null;
         const { posterUrl, title, rating, synopsis, director, cast, genres } = post.movieDetails;
@@ -102,7 +142,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
             </div>
         );
       }
-      // FIX: Add block scope to prevent variable redeclaration errors. The 'imageUrl' variable was conflicting with another case.
+      
       case PostType.CharacterIntroduction: {
         if (!post.characterDetails) return null;
         const { name, imageUrl, role, bio, keyTraits, firstAppearance } = post.characterDetails;
@@ -132,32 +172,50 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
           </div>
         );
       }
+       case PostType.Celebrity: {
+        if (!post.celebrityDetails) return null;
+        const { name, imageUrl, knownFor, bio, notableWorks, birthDate } = post.celebrityDetails;
+        return (
+          <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden">
+            <img src={imageUrl} alt={`${name} portrait`} className="w-full md:w-1/3 object-cover object-top" />
+            <div className="p-5 flex-1">
+              <h4 className="text-2xl font-bold text-white">{name}</h4>
+              <p className="text-teal-300 font-semibold mb-3">{knownFor}</p>
+              <p className="text-sm text-slate-300 mb-4 italic">"{bio}"</p>
+              
+              <div className="space-y-3 text-sm mb-4">
+                <div>
+                  <strong className="text-purple-300">Born:</strong>
+                  <span className="text-slate-200 ml-2">{new Date(birthDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</span>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <strong className="text-purple-300 w-full text-sm">Notable Works:</strong>
+                {notableWorks.map(work => (
+                  <span key={work} className="bg-slate-600 text-xs font-semibold text-slate-200 px-2.5 py-1 rounded-full">
+                    {work}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      }
       case PostType.Countdown: {
         if (!post.countdownDetails) return null;
-        const { targetDate, imageUrl, bookingUrl } = post.countdownDetails;
-        const isCountdownFinished = new Date() > new Date(targetDate);
-        const buttonText = isCountdownFinished ? "Now Showing!" : "Book Tickets Now";
-
+        // The button is now rendered outside this function, in a static footer.
+        // This component only needs to render the scrollable image part.
         return (
-          <div>
-            <img src={imageUrl} alt="Countdown poster" className="w-full h-auto object-cover" />
-            <div className="p-4 bg-slate-700/80">
-              <a
-                href={bookingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`block w-full text-center font-bold py-3 px-6 rounded-full transition duration-300 text-lg ${isCountdownFinished ? 'bg-amber-500 hover:bg-amber-600' : 'bg-purple-600 hover:bg-purple-700'} text-white`}
-              >
-                {buttonText}
-              </a>
-            </div>
+          <div className="rounded-lg overflow-hidden">
+            <img src={post.countdownDetails.imageUrl} alt="Countdown poster" className="w-full h-auto object-cover" />
           </div>
         );
       }
       case PostType.Filmography:
         if (!post.filmographyDetails) return null;
         return <FilmographyCarousel movies={post.filmographyDetails} />;
-      // FIX: Add block scope to prevent variable redeclaration errors. The 'imageUrl' variable was conflicting with another case.
+      
       case PostType.Awards: {
         if (!post.awardDetails) return null;
         const { awardName, awardFor, event, year, imageUrl } = post.awardDetails;
@@ -180,7 +238,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
         return (
           <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden border-2 border-yellow-400/30">
             <div className="relative w-full md:w-1/3">
-              <img src={posterUrl} alt={`${title} poster`} className="w-full h-full object-cover" />
+              <img src={posterUrl} alt={`${title} poster`} className="w-full object-cover" />
               <div className="absolute top-2 left-2 bg-yellow-400 text-slate-900 font-bold px-2 py-1 rounded-md text-xs uppercase tracking-wider">
                 {status}
               </div>
@@ -240,6 +298,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
             icon = <span className="material-symbols-outlined text-2xl text-green-400">badge</span>;
             titleColor = 'text-green-300';
             break;
+        case PostType.Celebrity:
+            icon = <span className="material-symbols-outlined text-2xl text-teal-400">person</span>;
+            titleColor = 'text-teal-300';
+            break;
         case PostType.Awards:
             icon = <span className="material-symbols-outlined text-2xl text-amber-400">emoji_events</span>;
             titleColor = 'text-amber-300';
@@ -257,19 +319,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
     }
 
     return (
-        <div className="px-5 pt-5">
-            <div className="flex items-center justify-between bg-slate-700/50 p-3 rounded-lg">
-                <div className="flex items-center space-x-3">
-                    {icon}
-                    <div>
-                        <h3 className={`font-bold text-lg ${titleColor}`}>{post.eventDetails.title}</h3>
-                        {post.eventDetails.subtitle && (
-                            <p className="text-sm text-slate-400">{post.eventDetails.subtitle}</p>
-                        )}
-                    </div>
+        <div className="flex items-center justify-between bg-slate-700/50 p-3 rounded-lg">
+            <div className="flex items-center space-x-3">
+                {icon}
+                <div>
+                    <h3 className={`font-bold text-lg ${titleColor}`}>{post.eventDetails.title}</h3>
+                    {post.eventDetails.subtitle && (
+                        <p className="text-sm text-slate-400">{post.eventDetails.subtitle}</p>
+                    )}
                 </div>
-                {rightContent}
             </div>
+            {rightContent}
         </div>
     );
   };
@@ -277,72 +337,121 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
   const hasEventHeader = [
     PostType.Anniversary, PostType.Birthday, PostType.MovieDetails, 
     PostType.CharacterIntroduction, PostType.Awards, PostType.Countdown, 
-    PostType.Filmography, PostType.ProjectAnnouncement
+    PostType.Filmography, PostType.ProjectAnnouncement, PostType.Celebrity
   ].includes(post.type);
-
-  const hasPadding = ![
-    PostType.Trailer, PostType.MovieDetails, PostType.CharacterIntroduction,
-    PostType.Countdown, PostType.Filmography, PostType.Awards, PostType.ProjectAnnouncement
-  ].includes(post.type);
-
 
   return (
-    <div className="relative rounded-xl shadow-2xl transform hover:scale-[1.01] transition-transform duration-300 bg-gradient-to-r from-purple-500 via-rose-500 to-amber-400 animate-gradient-border p-[2px]">
-      <div className="relative bg-slate-800 rounded-[10px] overflow-hidden w-full">
-        <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none z-20" aria-hidden="true"></canvas>
-        
-        {hasEventHeader ? renderEventHeader() : null}
-        
-        <div className={hasPadding ? "p-5" : ""}>
-          <div className={hasPadding ? "" : "p-5"}>
-              <div className="flex items-center mb-4">
-                  <img className="h-12 w-12 rounded-full border-2 border-slate-600" src={post.avatar} alt={post.author} />
-                  <div className="ml-4">
-                      <div className="text-lg font-semibold text-white">{post.author}</div>
-                      <div className="text-sm text-slate-400">{post.timestamp}</div>
-                  </div>
-              </div>
-              <p className="text-slate-300 mb-4 whitespace-pre-wrap">
-                {isLongContent && !isExpanded
-                  ? `${post.content.substring(0, CONTENT_TRUNCATE_LENGTH)}...`
-                  : post.content}
-                {isLongContent && (
-                  <button
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="inline bg-transparent border-none p-0 text-purple-400 hover:text-purple-300 font-semibold text-sm ml-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-800 rounded"
-                    aria-expanded={isExpanded}
-                  >
-                    {isExpanded ? 'Read Less' : 'Read More'}
-                  </button>
-                )}
-              </p>
+    <div className="relative bg-slate-800 rounded-xl shadow-2xl overflow-hidden w-full border border-slate-700 max-h-[780px] flex flex-col">
+      <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none z-20" aria-hidden="true"></canvas>
+      
+       {/* Static Header */}
+      <div className="p-5 flex-shrink-0">
+        {hasEventHeader && renderEventHeader()}
+        <div className="flex items-center mt-4">
+          <img className="h-12 w-12 rounded-full border-2 border-slate-600" src={post.avatar} alt={post.author} />
+          <div className="ml-4">
+            <div className="text-lg font-semibold text-white">{post.author}</div>
+            <div className="text-sm text-slate-400">{post.timestamp}</div>
           </div>
-
-          {renderPostContent()}
         </div>
-        
-        <div className="p-5">
-          <div className="flex items-center justify-between pb-3 border-b-2 border-slate-700">
-              {Object.values(ReactionType).map(reaction => (
-                <ReactionButton
-                  key={reaction}
-                  type={reaction}
-                  count={post.reactions[reaction] || 0}
-                  onClick={() => handleReactionClick(post.id, reaction)}
-                  isAnimating={animatingReaction === reaction}
-                />
-              ))}
+      </div>
+      
+       {/* Scrollable Body */}
+      <div className="flex-1 overflow-y-auto scrollbar-hide px-5 pb-5">
+        <p className="text-slate-300 mb-4 whitespace-pre-wrap">
+          {isLongContent && !isExpanded
+            ? `${post.content.substring(0, CONTENT_TRUNCATE_LENGTH)}...`
+            : post.content}
+          {isLongContent && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="inline bg-transparent border-none p-0 text-purple-400 hover:text-purple-300 font-semibold text-sm ml-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-800 rounded"
+              aria-expanded={isExpanded}
+            >
+              {isExpanded ? 'Read Less' : 'Read More'}
+            </button>
+          )}
+        </p>
+        {renderPostContent()}
+      </div>
+
+       {/* Static Countdown Footer (special case) */}
+      {post.type === PostType.Countdown && post.countdownDetails && (
+        <div className="px-5 pb-5 flex-shrink-0">
+          <a
+            href={post.countdownDetails.bookingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`block w-full text-center font-bold py-3 px-6 rounded-full transition duration-300 text-lg ${
+              new Date() > new Date(post.countdownDetails.targetDate) ? 'bg-amber-500 hover:bg-amber-600' : 'bg-purple-600 hover:bg-purple-700'
+            } text-white`}
+          >
+            {new Date() > new Date(post.countdownDetails.targetDate) ? "Now Showing!" : "Book Tickets Now"}
+          </a>
+        </div>
+      )}
+
+      {/* Static Main Footer */}
+      <div className="p-5 flex-shrink-0 border-t border-slate-700 bg-slate-800">
+        <div className="flex items-center justify-between pb-3 border-b-2 border-slate-700">
+            {Object.values(ReactionType).map(reaction => (
+              <ReactionButton
+                key={reaction}
+                type={reaction}
+                count={post.reactions[reaction] || 0}
+                onClick={() => handleReactionClick(post.id, reaction)}
+                isAnimating={animatingReaction === reaction}
+              />
+            ))}
+        </div>
+
+        {isCommentSectionVisible ? (
+          <>
+            <div className="flex items-center justify-between mt-4">
+                <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Fanz Says ({totalFanzSaysCount.toLocaleString()})</h4>
+                <button 
+                    onClick={() => setIsCommentSectionVisible(false)}
+                    className="text-xs text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1"
+                    aria-label="Hide comments"
+                >
+                    <span className="material-symbols-outlined text-base">unfold_less</span>
+                    Hide
+                </button>
+            </div>
+            <CommentSection
+                fanzSays={post.fanzSays}
+                onFanzSay={(fanzSayId) => handleFanzSayClick(post.id, fanzSayId)}
+                currentUserAvatar={currentUserAvatar}
+                animatingFanzSayId={animatingFanzSayId}
+            />
+          </>
+        ) : (
+          <div onClick={() => setIsCommentSectionVisible(true)} aria-hidden="true">
+             {topComments.length > 0 ? (
+                <AnimatedCommentTeaser topComments={topComments} totalCount={totalFanzSaysCount} />
+             ) : (
+                <div className="mt-4">
+                    <button
+                        className="w-full text-left bg-slate-700/50 hover:bg-slate-700 p-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        aria-label="Show comments"
+                    >
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-slate-400">
+                                Be the first to say something!
+                            </span>
+                            <span className="text-sm font-semibold text-purple-300 flex items-center gap-1">
+                                Comments
+                                <span className="material-symbols-outlined text-base">chat_bubble</span>
+                            </span>
+                        </div>
+                    </button>
+                </div>
+             )}
           </div>
-
-          <CommentSection
-            fanzSays={post.fanzSays}
-            onFanzSay={(fanzSayId) => onFanzSay(post.id, fanzSayId)}
-            currentUserAvatar={currentUserAvatar}
-          />
-        </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default PostCard;
+export default React.memo(PostCard);

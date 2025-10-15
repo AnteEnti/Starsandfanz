@@ -83,4 +83,4 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onToggleFan
   );
 };
 
-export default SuggestionCard;
+export default React.memo(SuggestionCard);

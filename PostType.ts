@@ -10,4 +10,5 @@ export enum PostType {
   Countdown = 'Countdown',
   Filmography = 'Filmography',
   Awards = 'Awards',
+  Celebrity = 'Celebrity',
 }

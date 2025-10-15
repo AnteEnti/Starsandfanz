@@ -78,4 +78,4 @@ const ReactionButton: React.FC<ReactionButtonProps> = ({ type, count, onClick, i
   );
 };
 
-export default ReactionButton;
+export default React.memo(ReactionButton);

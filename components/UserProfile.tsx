@@ -42,17 +42,19 @@ const UserProfile: React.FC<UserProfileProps> = ({
 
   if (isEditing) {
     return (
-      <EditProfileForm 
-        currentUser={user}
-        onSave={handleSaveProfile}
-        onCancel={() => setIsEditing(false)}
-        favoriteOptions={favoriteOptions}
-      />
+      <div className="max-w-2xl mx-auto">
+        <EditProfileForm 
+          currentUser={user}
+          onSave={handleSaveProfile}
+          onCancel={() => setIsEditing(false)}
+          favoriteOptions={favoriteOptions}
+        />
+      </div>
     );
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-2xl mx-auto">
       <ProfileHeader
         name={user.name}
         avatar={user.avatar}
