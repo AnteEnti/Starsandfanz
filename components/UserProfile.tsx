@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Suggestion, Post, ReactionType, UserProfileData } from '../types';
+import { Suggestion, Post, UserProfileData } from '../types';
 import PostCard from './PostCard';
 import ProfileHeader from './ProfileHeader';
 import FannedItems from './FannedItems';
@@ -12,7 +12,7 @@ interface UserProfileProps {
   interactedPosts: Post[];
   onToggleFan: (suggestionId: string) => void;
   onStartUnfan: (suggestionId: string, suggestionName: string) => void;
-  onReaction: (postId: string, reactionType: ReactionType) => void;
+  onReaction: (postId: string, reactionId: string) => void;
   onFanzSay: (postId: string, fanzSayId: string) => void;
   onUpdateProfile: (newProfile: UserProfileData) => void;
   favoriteOptions: {

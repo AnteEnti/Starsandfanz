@@ -1,7 +1,8 @@
 
 
+
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Post, ReactionType, Suggestion, SuggestionType, PostType, FanzSay, UserProfileData, HypeLogEntry } from './types';
+import { Post, Suggestion, SuggestionType, PostType, FanzSay, UserProfileData, HypeLogEntry, Reaction } from './types';
 import Header from './components/Header';
 import PostCard from './components/PostCard';
 import SuggestionCarousel from './components/SuggestionCarousel';
@@ -46,10 +47,11 @@ const INITIAL_POSTS: Post[] = [
       crew: 'దూరదృష్టి గల దర్శకుడు ఎలారా వాన్స్ నుండి',
       logline: 'కాలగర్భంలో కలిసిపోయిన ఒక రాజ్యాన్ని తిరిగి పొందేందుకు ఒక వీరుడు చేసే ప్రయాణం.',
     },
-    reactions: {
-      [ReactionType.Celebrate]: 18000,
-      [ReactionType.Love]: 15000,
-    },
+    reactionsEnabled: true,
+    reactions: [
+      { id: 'celebrate', emoji: '🎉', count: 18000 },
+      { id: 'love', emoji: '❤️', count: 15000 },
+    ],
     fanzSays: [
       { id: 'sc-telugu-pa-1', text: "అద్భుతం! 🔥", fans: createFanAvatars(18, 'telugu-pa1') },
       { id: 'sc-telugu-pa-2', text: "వేచి ఉండలేము!", fans: createFanAvatars(12, 'telugu-pa2') },
@@ -69,10 +71,11 @@ const INITIAL_POSTS: Post[] = [
       title: "హ్యాపీ బర్త్ డే, సూపర్ స్టార్!",
     },
     imageUrl: 'https://picsum.photos/seed/telugu-bday/800/500',
-    reactions: {
-      [ReactionType.Celebrate]: 22000,
-      [ReactionType.Love]: 19500,
-    },
+    reactionsEnabled: true,
+    reactions: [
+      { id: 'celebrate', emoji: '🎉', count: 22000 },
+      { id: 'love', emoji: '❤️', count: 19500 },
+    ],
     fanzSays: [
       { id: 'sc-telugu-bday-1', text: 'పుట్టినరోజు శుభాకాంక్షలు! 🎉', fans: createFanAvatars(28, 'telugu-bday1') },
       { id: 'sc-telugu-bday-2', text: 'జై రెబెల్ స్టార్!', fans: createFanAvatars(22, 'telugu-bday2') },
@@ -100,10 +103,11 @@ const INITIAL_POSTS: Post[] = [
       linkedMovieId: MOVIE_CHRONOS_PROPHECY_ID,
       linkedCelebrityId: CELEB_LEO_STARLIGHT_ID,
     },
-    reactions: {
-      [ReactionType.Celebrate]: 25000,
-      [ReactionType.Love]: 18000,
-    },
+    reactionsEnabled: true,
+    reactions: [
+        { id: 'celebrate', emoji: '🎉', count: 25000 },
+        { id: 'love', emoji: '❤️', count: 18000 },
+    ],
     fanzSays: [
       { id: 'sc-award-1', text: 'Well Deserved! 🏆', fans: createFanAvatars(12, 'award1') },
       { id: 'sc-award-2', text: 'So Proud! ❤️', fans: createFanAvatars(8, 'award2') },
@@ -131,7 +135,8 @@ const INITIAL_POSTS: Post[] = [
       sourceUrl: '#',
       linkedMovieId: MOVIE_CHRONOS_PROPHECY_ID,
     },
-    reactions: { [ReactionType.Celebrate]: 14000 },
+    reactionsEnabled: true,
+    reactions: [{ id: 'celebrate', emoji: '🎉', count: 14000 }],
     fanzSays: [
       { id: 'sc-bo-1', text: 'Record breaking! 💰', fans: createFanAvatars(10, 'bo1') },
       { id: 'sc-bo-2', text: 'Absolutely deserved!', fans: createFanAvatars(8, 'bo2') },
@@ -158,7 +163,8 @@ const INITIAL_POSTS: Post[] = [
       ],
       linkedCelebrityId: CELEB_LEO_STARLIGHT_ID,
     },
-    reactions: { [ReactionType.Love]: 8900 },
+    reactionsEnabled: true,
+    reactions: [{ id: 'love', emoji: '❤️', count: 8900 }],
     fanzSays: [
       { id: 'sc-trivia-1', text: 'Wow, I had no idea!', fans: createFanAvatars(7, 'trivia1') },
       { id: 'sc-trivia-2', text: 'So talented!', fans: createFanAvatars(5, 'trivia2') },
@@ -183,10 +189,11 @@ const INITIAL_POSTS: Post[] = [
       crew: 'From visionary director Elara Vance',
       logline: 'In a land forgotten by time, a hero must rise to reclaim a stolen birthright.',
     },
-    reactions: {
-      [ReactionType.Celebrate]: 15000,
-      [ReactionType.Love]: 12000,
-    },
+    reactionsEnabled: true,
+    reactions: [
+        { id: 'celebrate', emoji: '🎉', count: 15000 },
+        { id: 'love', emoji: '❤️', count: 12000 },
+    ],
     fanzSays: [
       { id: 'sc-pa-1', text: "Let's Gooo! 🔥", fans: createFanAvatars(21, 'pa1') },
       { id: 'sc-pa-2', text: "Already hyped!", fans: createFanAvatars(14, 'pa2') },
@@ -211,9 +218,8 @@ const INITIAL_POSTS: Post[] = [
       imageUrl: 'https://picsum.photos/seed/galactic-echoes-poster/800/1200',
       bookingUrl: '#',
     },
-    reactions: {
-      [ReactionType.Celebrate]: 9800,
-    },
+    reactionsEnabled: true,
+    reactions: [{ id: 'celebrate', emoji: '🎉', count: 9800 }],
     fanzSays: [
         { id: 'sc-cd-1', text: "Can't Wait! 🔥", fans: createFanAvatars(15, 'cd1') },
         { id: 'sc-cd-2', text: 'Take my money! 💸', fans: createFanAvatars(11, 'cd2') },
@@ -238,9 +244,8 @@ const INITIAL_POSTS: Post[] = [
       { id: 'film-3', title: 'Echoes of a Dream', year: 2015, posterUrl: 'https://picsum.photos/seed/echoes-dream-poster/400/600' },
       { id: 'film-4', title: 'Neon Shadows', year: 2013, posterUrl: 'https://picsum.photos/seed/neon-shadows-poster/400/600' },
     ],
-    reactions: {
-      [ReactionType.Love]: 11000,
-    },
+    reactionsEnabled: true,
+    reactions: [{ id: 'love', emoji: '❤️', count: 11000 }],
     fanzSays: [
       { id: 'sc-film-1', text: 'All of them! 🤩', fans: createFanAvatars(9, 'film1') },
       { id: 'sc-film-2', text: "'Chronos Prophecy' is my favorite!", fans: createFanAvatars(6, 'film2') },
@@ -268,10 +273,11 @@ const INITIAL_POSTS: Post[] = [
       notableWorks: ['Chronos Prophecy', 'Crimson Tide', 'Echoes of a Dream', 'Neon Shadows'],
       birthDate: '1974-11-11',
     },
-    reactions: {
-      [ReactionType.Love]: 22000,
-      [ReactionType.Celebrate]: 14000,
-    },
+    reactionsEnabled: true,
+    reactions: [
+        { id: 'love', emoji: '❤️', count: 22000 },
+        { id: 'celebrate', emoji: '🎉', count: 14000 },
+    ],
     fanzSays: [
       { id: 'sc-celeb-1', text: 'The GOAT! 🐐', fans: createFanAvatars(10, 'celeb1') },
       { id: 'sc-celeb-2', text: 'An inspiration!', fans: createFanAvatars(7, 'celeb2') },
@@ -295,7 +301,8 @@ const INITIAL_POSTS: Post[] = [
       notableWorks: ['Chronos Prophecy', 'Symphony of Souls'],
       birthDate: '1988-04-21',
     },
-    reactions: { [ReactionType.Love]: 18000 },
+    reactionsEnabled: true,
+    reactions: [{ id: 'love', emoji: '❤️', count: 18000 }],
     fanzSays: [],
   },
   {
@@ -315,7 +322,8 @@ const INITIAL_POSTS: Post[] = [
       notableWorks: ['Chronos Prophecy', 'The Last Stand'],
       birthDate: '1981-09-15',
     },
-    reactions: { [ReactionType.Love]: 16500 },
+    reactionsEnabled: true,
+    reactions: [{ id: 'love', emoji: '❤️', count: 16500 }],
     fanzSays: [],
   },
   {
@@ -328,10 +336,11 @@ const INITIAL_POSTS: Post[] = [
     eventDetails: {
       title: "Happy Birthday, Leo Starlight!",
     },
-    reactions: {
-      [ReactionType.Celebrate]: 12000,
-      [ReactionType.Love]: 8500,
-    },
+    reactionsEnabled: true,
+    reactions: [
+        { id: 'celebrate', emoji: '🎉', count: 12000 },
+        { id: 'love', emoji: '❤️', count: 8500 },
+    ],
     fanzSays: [
       { id: 'sc-bday-1', text: 'Happy Birthday! 🎉', fans: createFanAvatars(32, 'bday1') },
       { id: 'sc-bday-2', text: 'Many happy returns!', fans: createFanAvatars(18, 'bday2') },
@@ -349,10 +358,11 @@ const INITIAL_POSTS: Post[] = [
     content: "The wait is almost over! Check out the official trailer for 'Galactic Echoes'. We are speechless. What scene are you most excited about?! 🚀",
     videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ?&autoplay=1&mute=1&controls=0',
     videoDuration: 212, // Rick Astley song duration
-    reactions: {
-      [ReactionType.Love]: 5600,
-      [ReactionType.Whistle]: 3200,
-    },
+    reactionsEnabled: true,
+    reactions: [
+        { id: 'love', emoji: '❤️', count: 5600 },
+        { id: 'whistle', emoji: '🥳', count: 3200 },
+    ],
     fanzSays: [
       { id: 'sc-trailer-1', text: 'Mind Blowing! 🤯', fans: createFanAvatars(4, 'trailer1') },
       { id: 'sc-trailer-2', text: 'Goosebumps! 🥶', fans: createFanAvatars(3, 'trailer2') },
@@ -373,9 +383,8 @@ const INITIAL_POSTS: Post[] = [
       title: "Chronos Prophecy",
       subtitle: "5th Anniversary",
     },
-    reactions: {
-      [ReactionType.Love]: 7800,
-    },
+    reactionsEnabled: true,
+    reactions: [{ id: 'love', emoji: '❤️', count: 7800 }],
     fanzSays: [
       { id: 'sc-anniv-1', text: 'A true classic! 🎬', fans: createFanAvatars(8, 'anniv1') },
       { id: 'sc-anniv-2', text: "Feels like yesterday!", fans: createFanAvatars(5, 'anniv2') },
@@ -391,9 +400,8 @@ const INITIAL_POSTS: Post[] = [
     avatar: 'https://i.pravatar.cc/150?u=admin',
     timestamp: '5 days ago',
     content: "Big news, everyone! We're officially launching a fan art competition for the upcoming album. The winning design will be featured on official merchandise and the artist will get to meet the star! Submissions open next week. Get your creative juices flowing!",
-    reactions: {
-      [ReactionType.Celebrate]: 4100,
-    },
+    reactionsEnabled: true,
+    reactions: [{ id: 'celebrate', emoji: '🎉', count: 4100 }],
     fanzSays: [
       { id: 'sc-announce-1', text: 'This is amazing news! 🎉', fans: createFanAvatars(4, 'announce1') },
       { id: 'sc-announce-2', text: 'So exciting!', fans: createFanAvatars(3, 'announce2') },
@@ -451,9 +459,8 @@ const INITIAL_POSTS: Post[] = [
         { season: 1, episodeNumber: 3, title: 'The Ghambira Gambit', synopsis: 'Ozes Ghambira reveals his own plans for the technology, setting up a confrontation.', thumbnailUrl: 'https://picsum.photos/seed/cp-s1e3/400/225' },
         { season: 1, episodeNumber: 4, title: 'Point of No Return', synopsis: 'Aris must make a choice that will either save the timeline or shatter it forever.', thumbnailUrl: 'https://picsum.photos/seed/cp-s1e4/400/225' },
     ],
-    reactions: {
-      [ReactionType.Love]: 15000,
-    },
+    reactionsEnabled: true,
+    reactions: [{ id: 'love', emoji: '❤️', count: 15000 }],
     fanzSays: [
       { id: 'sc-movie-1', text: 'An absolute masterpiece! 💯', fans: createFanAvatars(13, 'movie1') },
       { id: 'sc-movie-2', text: 'The ending was brilliant!', fans: createFanAvatars(9, 'movie2') },
@@ -480,10 +487,11 @@ const INITIAL_POSTS: Post[] = [
       firstAppearance: "'Chronos Prophecy' (2019)",
       linkedMovieId: MOVIE_CHRONOS_PROPHECY_ID,
     },
-    reactions: {
-      [ReactionType.Love]: 9200,
-      [ReactionType.Whistle]: 1100,
-    },
+    reactionsEnabled: true,
+    reactions: [
+        { id: 'love', emoji: '❤️', count: 9200 },
+        { id: 'whistle', emoji: '🥳', count: 1100 },
+    ],
     fanzSays: [
       { id: 'sc-char-1', text: 'Such a complex character!', fans: createFanAvatars(7, 'char1') },
       { id: 'sc-char-2', text: 'Best villain ever!', fans: createFanAvatars(5, 'char2') },
@@ -500,10 +508,11 @@ const INITIAL_POSTS: Post[] = [
     timestamp: '8 days ago',
     content: "A stunning shot from the latest photoshoot. The 'Galactic Echoes' era is going to be visually iconic. ✨",
     imageUrl: 'https://picsum.photos/seed/galactic-echoes/800/500',
-    reactions: {
-      [ReactionType.Love]: 2500,
-      [ReactionType.Celebrate]: 1800,
-    },
+    reactionsEnabled: true,
+    reactions: [
+        { id: 'love', emoji: '❤️', count: 2500 },
+        { id: 'celebrate', emoji: '🎉', count: 1800 },
+    ],
     fanzSays: [
       { id: 'sc-img-1', text: 'Absolutely stunning! 💖', fans: createFanAvatars(2, 'img1') },
       { id: 'sc-img-2', text: 'Just... wow! 🤩', fans: createFanAvatars(1, 'img2') },
@@ -663,12 +672,16 @@ const App: React.FC = () => {
     setSuggestionToUnfan(null);
   }, []);
 
-  const handleReaction = useCallback((postId: string, reactionType: ReactionType) => {
+  const handleReaction = useCallback((postId: string, reactionId: string) => {
     setPosts(prevPosts =>
       prevPosts.map(post => {
-        if (post.id === postId) {
-          const newReactions = { ...post.reactions };
-          newReactions[reactionType] = (newReactions[reactionType] || 0) + 1;
+        if (post.id === postId && post.reactions) {
+          const newReactions = post.reactions.map(reaction => {
+            if (reaction.id === reactionId) {
+              return { ...reaction, count: reaction.count + 1 };
+            }
+            return reaction;
+          });
           return { ...post, reactions: newReactions };
         }
         return post;

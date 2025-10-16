@@ -1,11 +1,12 @@
 
+
 import React from 'react';
-import { Post, ReactionType } from '../../types';
+import { Post } from '../../types';
 import PostCard from '../PostCard';
 
 interface RelatedBuzzProps {
   posts: Post[];
-  onReaction: (postId: string, reactionType: ReactionType) => void;
+  onReaction: (postId: string, reactionId: string) => void;
   onFanzSay: (postId: string, fanzSayId: string) => void;
   currentUserAvatar: string;
   onViewFullPost: (post: Post) => void;

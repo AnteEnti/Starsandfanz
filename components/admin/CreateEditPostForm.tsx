@@ -1,5 +1,5 @@
 import React, { useState, useCallback, ChangeEvent, FormEvent, useEffect } from 'react';
-import { Post, PostType, FilmographyItem, ReactionType, FanzSay } from '../../types';
+import { Post, PostType, FilmographyItem, FanzSay, Reaction } from '../../types';
 import SearchableLinkSelector from './SearchableLinkSelector';
 
 interface CreateEditPostFormProps {
@@ -50,7 +50,12 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
         linkedMovieIds: [], 
         linkedCelebrityIds: [], 
         fanzSaysEnabled: true,
-        reactions: {},
+        reactionsEnabled: true,
+        reactions: [
+            { id: 'love', emoji: '❤️', count: 0 },
+            { id: 'celebrate', emoji: '🎉', count: 0 },
+            { id: 'whistle', emoji: '🥳', count: 0 },
+        ],
         fanzSays: [
             { id: `sc-new-${Date.now()}-1`, text: 'This is great!', fans: [] },
             { id: `sc-new-${Date.now()}-2`, text: 'Awesome!', fans: [] },
@@ -66,7 +71,8 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
           ...initialData,
           ...postData,
           fanzSaysEnabled: post.fanzSaysEnabled !== false,
-          reactions: post.reactions || {},
+          reactionsEnabled: post.reactionsEnabled !== false,
+          reactions: post.reactions && post.reactions.length > 0 ? post.reactions : initialData.reactions,
           fanzSays: post.fanzSays && post.fanzSays.length > 0 ? post.fanzSays : initialData.fanzSays,
         };
 
@@ -204,19 +210,25 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
       fanzSays: (formData.fanzSays || []).filter((_: any, index: number) => index !== indexToRemove),
     });
   };
-
-  const handleReactionCountChange = (reaction: ReactionType, value: string) => {
-    const count = parseInt(value, 10);
-    if (!isNaN(count)) {
-      setFormData((prev: any) => ({
-        ...prev,
-        reactions: {
-          ...prev.reactions,
-          [reaction]: count,
-        },
-      }));
-    }
+  
+  const handleReactionChange = (index: number, field: keyof Omit<Reaction, 'id'>, value: string | number) => {
+    const updatedReactions = [...(formData.reactions || [])];
+    updatedReactions[index] = { ...updatedReactions[index], [field]: value };
+    setFormData({ ...formData, reactions: updatedReactions });
   };
+
+  const addReactionItem = () => {
+    const newReaction: Reaction = { id: `reaction-${Date.now()}`, emoji: '', count: 0 };
+    setFormData({ ...formData, reactions: [...(formData.reactions || []), newReaction] });
+  };
+
+  const removeReactionItem = (indexToRemove: number) => {
+    setFormData({
+      ...formData,
+      reactions: (formData.reactions || []).filter((_: any, index: number) => index !== indexToRemove),
+    });
+  };
+
 
   const handleLinksChange = (type: 'movie' | 'celebrity', newIds: string[]) => {
     const key = type === 'movie' ? 'linkedMovieIds' : 'linkedCelebrityIds';
@@ -232,6 +244,7 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
       linkedCelebrityIds: formData.linkedCelebrityIds,
       fanzSaysEnabled: formData.fanzSaysEnabled,
       fanzSays: formData.fanzSays,
+      reactionsEnabled: formData.reactionsEnabled,
       reactions: formData.reactions,
     };
 
@@ -449,6 +462,62 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
         <fieldset className="space-y-4 pt-4 border-t border-slate-700">
           <legend className="text-xl font-bold text-white w-full pb-2">Engagement Settings</legend>
           
+           <div className="flex items-center bg-slate-700/50 p-3 rounded-lg hover:bg-slate-700">
+              <input
+                  type="checkbox"
+                  id="reactionsEnabled"
+                  name="reactionsEnabled"
+                  checked={formData.reactionsEnabled || false}
+                  onChange={handleInputChange}
+                  className="h-4 w-4 rounded border-slate-500 bg-slate-800 text-purple-600 focus:ring-purple-500"
+              />
+              <label htmlFor="reactionsEnabled" className="ml-3 text-sm font-medium text-slate-200">
+                  Enable Reactions Section
+              </label>
+          </div>
+
+          {formData.reactionsEnabled && (
+            <div className="p-4 bg-slate-700/50 rounded-lg">
+              <h3 className="text-lg font-semibold text-purple-300 mb-3">Reactions</h3>
+              <div className="space-y-2">
+                {(formData.reactions || []).map((reaction: Reaction, index: number) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={reaction.emoji}
+                      onChange={(e) => handleReactionChange(index, 'emoji', e.target.value)}
+                      placeholder="Emoji"
+                      className="w-16 bg-slate-700 text-white rounded-md p-2 border border-slate-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-center"
+                    />
+                    <input
+                      type="number"
+                      value={reaction.count}
+                      onChange={(e) => handleReactionChange(index, 'count', parseInt(e.target.value, 10) || 0)}
+                      placeholder="Count"
+                      className="flex-1 bg-slate-700 text-white rounded-md p-2 border border-slate-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeReactionItem(index)}
+                      className="bg-red-600 hover:bg-red-700 text-white font-bold p-2 rounded-md"
+                      aria-label="Remove reaction"
+                    >
+                      <span className="material-symbols-outlined text-base">delete</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={addReactionItem}
+                className="mt-3 bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-3 rounded-md text-sm flex items-center gap-1"
+              >
+                <span className="material-symbols-outlined text-base">add</span>
+                Add Reaction
+              </button>
+            </div>
+          )}
+
           <div className="flex items-center bg-slate-700/50 p-3 rounded-lg hover:bg-slate-700">
               <input
                   type="checkbox"
@@ -497,24 +566,6 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
               </button>
             </div>
           )}
-
-          <div className="p-4 bg-slate-700/50 rounded-lg">
-            <h3 className="text-lg font-semibold text-purple-300 mb-3">Initial Reaction Counts</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {Object.values(ReactionType).map(reaction => (
-                <div key={reaction}>
-                  <label htmlFor={`reaction-${reaction}`} className="block text-sm font-medium text-slate-300 mb-1">{reaction} Count</label>
-                  <input
-                    type="number"
-                    id={`reaction-${reaction}`}
-                    value={formData.reactions?.[reaction] || 0}
-                    onChange={(e) => handleReactionCountChange(reaction, e.target.value)}
-                    className="w-full bg-slate-700 text-white rounded-md p-2 border border-slate-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
         </fieldset>
 
         <div className="flex justify-end items-center gap-3 mt-6">

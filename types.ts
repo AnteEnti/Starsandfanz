@@ -1,9 +1,9 @@
 import { PostType } from './PostType';
 
-export enum ReactionType {
-  Love = '❤️',
-  Whistle = '🥳',
-  Celebrate = '🎉',
+export interface Reaction {
+  id: string; // A unique identifier for the reaction type, e.g., 'love', 'celebrate'
+  emoji: string; // The emoji character, e.g., '❤️'
+  count: number;
 }
 
 export enum SuggestionType {
@@ -155,7 +155,8 @@ export interface Post {
   celebrityDetails?: CelebrityDetails;
   boxOfficeDetails?: BoxOfficeDetails;
   triviaDetails?: TriviaDetails;
-  reactions: { [key in ReactionType]?: number };
+  reactions: Reaction[];
+  reactionsEnabled?: boolean;
   fanzSays?: FanzSay[];
   fanzSaysEnabled?: boolean;
   linkedMovieIds?: string[];

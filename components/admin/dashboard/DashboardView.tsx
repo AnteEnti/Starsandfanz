@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
-import { Post } from '../../types';
-import UserGrowthChart from './dashboard/UserGrowthChart';
-import PopularPosts from './dashboard/PopularPosts';
-import RecentActivities from './dashboard/RecentActivities';
+import { Post } from '../../../types';
+import UserGrowthChart from './UserGrowthChart';
+import PopularPosts from './PopularPosts';
+import RecentActivities from './RecentActivities';
 
 interface StatCardProps {
   title: string;
@@ -30,8 +30,6 @@ interface DashboardViewProps {
 const DashboardView: React.FC<DashboardViewProps> = ({ posts }) => {
   const totalReactions = useMemo(() =>
     posts.reduce((acc, post) => {
-      // FIX: Correctly sum the `count` property from each Reaction object.
-      // The previous implementation was incorrect for an array of objects.
       const postReactionTotal = post.reactions?.reduce((sum, reaction) => sum + reaction.count, 0) || 0;
       return acc + postReactionTotal;
     }, 0),

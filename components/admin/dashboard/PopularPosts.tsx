@@ -10,7 +10,7 @@ const PopularPosts: React.FC<PopularPostsProps> = ({ posts }) => {
     return [...posts]
       .map(post => ({
         ...post,
-        totalReactions: Object.values(post.reactions).reduce((sum, count) => sum + (count || 0), 0)
+        totalReactions: post.reactions?.reduce((sum, reaction) => sum + reaction.count, 0) || 0
       }))
       .sort((a, b) => b.totalReactions - a.totalReactions)
       .slice(0, 5);

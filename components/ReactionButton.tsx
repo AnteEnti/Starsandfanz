@@ -1,24 +1,26 @@
 import React from 'react';
-import { ReactionType } from '../types';
+import { Reaction } from '../types';
 
 interface ReactionButtonProps {
-  type: ReactionType;
-  count: number;
+  reaction: Reaction;
   onClick: (e: React.MouseEvent) => void;
   isAnimating?: boolean;
 }
 
-const reactionLabels: { [key in ReactionType]: string } = {
-  [ReactionType.Love]: 'Love',
-  [ReactionType.Celebrate]: 'Celebrate',
-  [ReactionType.Whistle]: 'Seeti Maro / Wissel Podu',
+const reactionLabels: { [key: string]: string } = {
+  '❤️': 'Love',
+  '🥳': 'Seeti Maro / Wissel Podu',
+  '🎉': 'Celebrate',
 };
 
-const ReactionButton: React.FC<ReactionButtonProps> = ({ type, count, onClick, isAnimating }) => {
+const ReactionButton: React.FC<ReactionButtonProps> = ({ reaction, onClick, isAnimating }) => {
+  const { emoji, count } = reaction;
+  const label = reactionLabels[emoji] || 'React';
+
   return (
     <>
       <div className="relative group flex justify-center">
-        {isAnimating && type === ReactionType.Whistle && (
+        {isAnimating && emoji === '🥳' && (
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full animate-rattle pointer-events-none z-10">
             🥳
           </div>
@@ -26,9 +28,9 @@ const ReactionButton: React.FC<ReactionButtonProps> = ({ type, count, onClick, i
         <button
           onClick={onClick}
           className="flex items-center space-x-2 text-slate-400 hover:text-white rounded-full py-2 px-3 transition-all duration-200 ease-in-out transform hover:bg-slate-700 active:scale-125"
-          aria-label={`React with ${reactionLabels[type]}`}
+          aria-label={`React with ${label}`}
         >
-          <span className="text-2xl">{type}</span>
+          <span className="text-2xl">{emoji}</span>
           <span className="font-semibold text-sm">{count.toLocaleString()}</span>
         </button>
 
@@ -36,7 +38,7 @@ const ReactionButton: React.FC<ReactionButtonProps> = ({ type, count, onClick, i
           className="absolute bottom-full mb-2 w-max px-3 py-1.5 bg-slate-950 text-white text-xs font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
           role="tooltip"
         >
-          {reactionLabels[type]}
+          {label}
         </div>
       </div>
       <style>{`

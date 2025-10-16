@@ -2,7 +2,7 @@
 
 
 import React, { useMemo } from 'react';
-import { Post, ReactionType, Person, MovieDetails, HypeLogEntry } from '../types';
+import { Post, Person, MovieDetails, HypeLogEntry } from '../types';
 import { PostType } from '../PostType';
 import MovieHero from './movie_page/MovieHero';
 import CastCrew from './movie_page/CastCrew';
@@ -19,7 +19,7 @@ interface MoviePageProps {
   movieId: string;
   posts: Post[];
   onClose: () => void;
-  onReaction: (postId: string, reactionType: ReactionType) => void;
+  onReaction: (postId: string, reactionId: string) => void;
   onFanzSay: (postId: string, fanzSayId: string) => void;
   currentUserAvatar: string;
   onViewMoviePage: (movieId: string) => void;

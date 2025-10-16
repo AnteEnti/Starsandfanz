@@ -30,7 +30,7 @@ const PostManagementView: React.FC<PostManagementViewProps> = ({
 }) => {
 
   const getTotalReactions = (post: Post) => {
-    return Object.values(post.reactions).reduce((sum, count) => sum + (count || 0), 0);
+    return post.reactions?.reduce((sum, reaction) => sum + reaction.count, 0) || 0;
   };
 
   if (view === 'form') {

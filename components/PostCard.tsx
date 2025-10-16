@@ -1,5 +1,5 @@
 import React, { useRef, useState, useMemo, useLayoutEffect } from 'react';
-import { Post, ReactionType, FanzSay } from '../types';
+import { Post, Reaction, FanzSay } from '../types';
 import ReactionButton from './ReactionButton';
 import CommentSection from './CommentSection';
 import VideoPlayer from './VideoPlayer';
@@ -12,7 +12,7 @@ declare const confetti: any;
 
 interface PostCardProps {
   post: Post;
-  onReaction: (postId: string, reactionType: ReactionType) => void;
+  onReaction: (postId: string, reactionId: string) => void;
   onFanzSay: (postId: string, fanzSayId: string) => void;
   currentUserAvatar: string;
   onViewFullPost: (post: Post) => void;
@@ -49,7 +49,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [isOverflowing, setIsOverflowing] = useState(false);
-  const [animatingReaction, setAnimatingReaction] = useState<ReactionType | null>(null);
+  const [animatingReaction, setAnimatingReaction] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [animatingFanzSayId, setAnimatingFanzSayId] = useState<string | null>(null);
   const [isCommentSectionVisible, setIsCommentSectionVisible] = useState(false);
@@ -100,13 +100,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
     }
   };
 
-  const handleReactionClick = (event: React.MouseEvent, reactionType: ReactionType) => {
-    onReaction(post.id, reactionType);
-    if (reactionType === ReactionType.Celebrate) {
+  const handleReactionClick = (event: React.MouseEvent, reactionId: string) => {
+    const reaction = post.reactions.find(r => r.id === reactionId);
+    if (!reaction) return;
+
+    onReaction(post.id, reactionId);
+
+    if (reaction.emoji === '🎉') {
       triggerConfetti();
     }
-    if (reactionType === ReactionType.Whistle) {
-      setAnimatingReaction(ReactionType.Whistle);
+    if (reaction.emoji === '🥳') {
+      setAnimatingReaction('🥳');
       setTimeout(() => setAnimatingReaction(null), 1000); // Duration of the animation
     }
   };
@@ -479,17 +483,18 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
 
         {/* Static Main Footer */}
         <div className="p-5 flex-shrink-0 border-t border-slate-700 bg-slate-800">
-          <div className="flex items-center justify-between pb-3 border-b-2 border-slate-700">
-              {Object.values(ReactionType).map(reaction => (
-                <ReactionButton
-                  key={reaction}
-                  type={reaction}
-                  count={post.reactions[reaction] || 0}
-                  onClick={(e) => handleReactionClick(e, reaction)}
-                  isAnimating={animatingReaction === reaction}
-                />
-              ))}
-          </div>
+          {post.reactionsEnabled !== false && post.reactions && post.reactions.length > 0 && (
+            <div className="flex items-center justify-between pb-3 border-b-2 border-slate-700">
+                {post.reactions.map(reaction => (
+                  <ReactionButton
+                    key={reaction.id}
+                    reaction={reaction}
+                    onClick={(e) => handleReactionClick(e, reaction.id)}
+                    isAnimating={animatingReaction === reaction.emoji}
+                  />
+                ))}
+            </div>
+          )}
 
           {post.fanzSaysEnabled !== false && (
             isCommentSectionVisible ? (
