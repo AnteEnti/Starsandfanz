@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Post, Suggestion, SuggestionType, PostType, FanzSay, UserProfileData, HypeLogEntry, Reaction } from './types';
 import Header from './components/Header';
@@ -360,8 +358,8 @@ const INITIAL_POSTS: Post[] = [
     videoDuration: 212, // Rick Astley song duration
     reactionsEnabled: true,
     reactions: [
-        { id: 'love', emoji: '❤️', count: 5600 },
         { id: 'whistle', emoji: '🥳', count: 3200 },
+        { id: 'love', emoji: '❤️', count: 5600 },
     ],
     fanzSays: [
       { id: 'sc-trailer-1', text: 'Mind Blowing! 🤯', fans: createFanAvatars(4, 'trailer1') },
@@ -489,8 +487,8 @@ const INITIAL_POSTS: Post[] = [
     },
     reactionsEnabled: true,
     reactions: [
-        { id: 'love', emoji: '❤️', count: 9200 },
         { id: 'whistle', emoji: '🥳', count: 1100 },
+        { id: 'love', emoji: '❤️', count: 9200 },
     ],
     fanzSays: [
       { id: 'sc-char-1', text: 'Such a complex character!', fans: createFanAvatars(7, 'char1') },
@@ -828,7 +826,6 @@ const App: React.FC = () => {
           posts={posts}
           onClose={handleCloseMoviePage}
           onReaction={handleReaction}
-// FIX: Pass the `handleFanzSay` callback to the `MoviePage` component.
           onFanzSay={handleFanzSay}
           currentUserAvatar={userProfile.avatar}
           onViewMoviePage={handleViewMoviePage}
@@ -917,7 +914,6 @@ const App: React.FC = () => {
                 user={userProfile}
                 fannedItems={fannedSuggestions}
                 interactedPosts={interactedPosts}
-                // FIX: Pass the correct handler for onToggleFan. `handleStartUnfan` has the wrong signature. `handleToggleFan` is correct.
                 onToggleFan={handleToggleFan}
                 onStartUnfan={handleStartUnfan}
                 onReaction={handleReaction}
@@ -925,6 +921,7 @@ const App: React.FC = () => {
                 onUpdateProfile={handleUpdateProfile}
                 favoriteOptions={{ genres: allGenres, movies: allMovies, stars: allStars }}
                 onViewFullPost={handleViewPost}
+                // FIX: Corrected typo from `onViewMoviePage` to `handleViewMoviePage`
                 onViewMoviePage={handleViewMoviePage}
               />
             </div>

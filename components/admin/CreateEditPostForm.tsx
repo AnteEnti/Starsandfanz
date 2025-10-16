@@ -53,8 +53,8 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
         reactionsEnabled: true,
         reactions: [
             { id: 'love', emoji: '❤️', count: 0 },
-            { id: 'celebrate', emoji: '🎉', count: 0 },
             { id: 'whistle', emoji: '🥳', count: 0 },
+            { id: 'celebrate', emoji: '🎉', count: 0 },
         ],
         fanzSays: [
             { id: `sc-new-${Date.now()}-1`, text: 'This is great!', fans: [] },
