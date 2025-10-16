@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { StarIcon } from './icons';
 
 type ActiveView = 'feed' | 'profile' | 'admin' | 'favorites';
@@ -7,10 +7,43 @@ interface HeaderProps {
   activeView: ActiveView;
   setActiveView: (view: ActiveView) => void;
   userAvatar: string;
+  favoriteStarAvatars: string[];
   isAdmin: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, userAvatar, isAdmin }) => {
+const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, userAvatar, favoriteStarAvatars, isAdmin }) => {
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [avatarIndex, setAvatarIndex] = useState(0);
+  const allAvatars = useMemo(() => [userAvatar, ...favoriteStarAvatars], [userAvatar, favoriteStarAvatars]);
+  
+  const frontAvatar = allAvatars[avatarIndex];
+  const backAvatar = allAvatars.length > 1 ? allAvatars[(avatarIndex + 1) % allAvatars.length] : frontAvatar;
+
+  useEffect(() => {
+    if (allAvatars.length <= 1) {
+      setIsFlipped(false);
+      setAvatarIndex(0);
+      return;
+    }
+
+    const flipInterval = setInterval(() => {
+        setIsFlipped(current => !current);
+    }, 4000); // Flip every 4 seconds
+
+    return () => clearInterval(flipInterval);
+  }, [allAvatars.length]);
+
+  useEffect(() => {
+    if (allAvatars.length <= 1 || !isFlipped) return;
+
+    // When the card flips to its back, set a timer to update the avatar index.
+    // The new index will be on the "front" when it flips back.
+    const swapTimer = setTimeout(() => {
+        setAvatarIndex(current => (current + 1) % allAvatars.length);
+    }, 500); // Half of the 1s animation duration
+
+    return () => clearTimeout(swapTimer);
+  }, [isFlipped, allAvatars.length]);
   
   const navItems: { id: ActiveView; label: string; icon: string }[] = [
     { id: 'feed', label: 'Feed', icon: 'home' },
@@ -44,7 +77,7 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, userAvatar, 
             <div className="flex items-center space-x-3">
               <StarIcon className="h-8 w-8 text-purple-400" />
               <span className="text-2xl font-bold text-white tracking-wider">
-                Star Sphere
+                Stars And Fanz
               </span>
             </div>
             
@@ -61,11 +94,28 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, userAvatar, 
             </div>
 
             <div className="flex items-center">
-              <img 
-                className="h-10 w-10 rounded-full border-2 border-purple-400 object-cover"
-                src={userAvatar}
-                alt="User profile"
-              />
+               <div className="relative w-10 h-10" style={{ perspective: '1000px' }}>
+                  <div 
+                      className="relative w-full h-full transition-transform duration-1000"
+                      style={{
+                          transformStyle: 'preserve-3d',
+                          transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                      }}
+                  >
+                      <img 
+                          className="absolute w-full h-full rounded-full border-2 border-purple-400 object-cover"
+                          style={{ backfaceVisibility: 'hidden' }}
+                          src={frontAvatar}
+                          alt="User profile"
+                      />
+                      <img 
+                          className="absolute w-full h-full rounded-full border-2 border-purple-400 object-cover"
+                          style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+                          src={backAvatar}
+                          alt="Favorite star profile"
+                      />
+                  </div>
+              </div>
             </div>
           </div>
         </div>

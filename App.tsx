@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Post, ReactionType, Suggestion, SuggestionType, PostType, FanzSay, UserProfileData, HypeLogEntry } from './types';
 import Header from './components/Header';
@@ -774,12 +775,37 @@ const App: React.FC = () => {
     });
   }, [posts, fannedSuggestionLinkedIds]);
 
+  const favoriteStarAvatars = useMemo(() => {
+    const celebAvatars = new Map<string, string>();
+
+    // Get avatars from suggestions
+    INITIAL_SUGGESTIONS.forEach(sugg => {
+      if (sugg.type === SuggestionType.Celeb) {
+        celebAvatars.set(sugg.name, sugg.avatar);
+      }
+    });
+
+    // Get avatars from celebrity posts to be more comprehensive
+    INITIAL_POSTS.forEach(post => {
+      if (post.type === PostType.Celebrity && post.celebrityDetails) {
+        if (!celebAvatars.has(post.celebrityDetails.name)) {
+            celebAvatars.set(post.celebrityDetails.name, post.celebrityDetails.imageUrl);
+        }
+      }
+    });
+
+    return userProfile.favoriteStars
+      .map(starName => celebAvatars.get(starName))
+      .filter((avatar): avatar is string => !!avatar);
+  }, [userProfile.favoriteStars]);
+
   return (
     <>
       <Header 
         activeView={activeView} 
         setActiveView={setActiveView} 
         userAvatar={userProfile.avatar}
+        favoriteStarAvatars={favoriteStarAvatars}
         isAdmin={isAdmin}
       />
       
@@ -789,6 +815,7 @@ const App: React.FC = () => {
           posts={posts}
           onClose={handleCloseMoviePage}
           onReaction={handleReaction}
+// FIX: Pass the `handleFanzSay` callback to the `MoviePage` component.
           onFanzSay={handleFanzSay}
           currentUserAvatar={userProfile.avatar}
           onViewMoviePage={handleViewMoviePage}
