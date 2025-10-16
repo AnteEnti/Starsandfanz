@@ -10,7 +10,7 @@ interface PostManagementViewProps {
   postToEdit: Post | null;
   onEdit: (post: Post) => void;
   onCreateNew: () => void;
-  onSave: (postData: Omit<Post, 'id' | 'author' | 'avatar' | 'timestamp' | 'reactions' | 'fanzSays'>) => void;
+  onSave: (postData: Omit<Post, 'id' | 'author' | 'avatar' | 'timestamp'>) => void;
   onCancel: () => void;
   allMovies: { id: string, title: string }[];
   allCelebrities: { id: string, name: string }[];

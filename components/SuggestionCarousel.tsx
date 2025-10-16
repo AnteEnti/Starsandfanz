@@ -32,6 +32,7 @@ const SuggestionCarousel: React.FC<SuggestionCarouselProps> = ({ suggestions, on
               suggestion={suggestion} 
               onToggleFan={onToggleFan}
               onStartUnfan={onStartUnfan}
+              disappearsOnFan={true}
             />
           ))}
         </div>

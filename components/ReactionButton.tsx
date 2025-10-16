@@ -4,7 +4,7 @@ import { ReactionType } from '../types';
 interface ReactionButtonProps {
   type: ReactionType;
   count: number;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent) => void;
   isAnimating?: boolean;
 }
 

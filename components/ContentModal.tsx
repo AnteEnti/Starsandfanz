@@ -16,12 +16,13 @@ interface ContentModalProps {
   onReaction: (postId: string, reactionType: ReactionType) => void;
   onFanzSay: (postId: string, fanzSayId: string) => void;
   currentUserAvatar: string;
+  onViewMoviePage: (movieId: string) => void;
 }
 
 // NOTE: This component duplicates some rendering logic from PostCard.
 // In a larger application, this could be refactored into shared sub-components.
 
-const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, onFanzSay, currentUserAvatar }) => {
+const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, onFanzSay, currentUserAvatar, onViewMoviePage }) => {
   const [isClosing, setIsClosing] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [animatingReaction, setAnimatingReaction] = useState<ReactionType | null>(null);
@@ -67,8 +68,8 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
     }
   };
 
-  const handleReactionClick = (postId: string, reactionType: ReactionType) => {
-    onReaction(postId, reactionType);
+  const handleReactionClick = (e: React.MouseEvent, reactionType: ReactionType) => {
+    onReaction(post.id, reactionType);
     if (reactionType === ReactionType.Celebrate) {
       triggerConfetti();
     }
@@ -97,6 +98,7 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
             if (!post.movieDetails) return null;
             const { posterUrl, title, rating, synopsis, director, cast, genres } = post.movieDetails;
             return (
+              <button onClick={() => onViewMoviePage(post.movieDetails!.id)} className="w-full text-left transition-transform duration-300 hover:scale-[1.02]">
                 <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden">
                     <img src={posterUrl} alt={`${title} poster`} className="w-full md:w-1/3 object-cover" />
                     <div className="p-5 flex-1">
@@ -115,6 +117,7 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
                         <div className="mt-4 flex flex-wrap gap-2">{genres.map(genre => (<span key={genre} className="bg-slate-600 text-xs font-semibold text-slate-200 px-2.5 py-1 rounded-full">{genre}</span>))}</div>
                     </div>
                 </div>
+              </button>
             );
         }
         case PostType.CharacterIntroduction: {
@@ -153,7 +156,7 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
             );
         }
         case PostType.Countdown: return post.countdownDetails ? <div className="rounded-lg overflow-hidden"><img src={post.countdownDetails.imageUrl} alt="Countdown poster" className="w-full h-auto object-cover" /></div> : null;
-        case PostType.Filmography: return post.filmographyDetails ? <FilmographyCarousel movies={post.filmographyDetails} /> : null;
+        case PostType.Filmography: return post.filmographyDetails ? <FilmographyCarousel movies={post.filmographyDetails} onViewMoviePage={onViewMoviePage} /> : null;
         case PostType.Awards: {
             if (!post.awardDetails) return null;
             const { awardName, awardFor, event, year, imageUrl } = post.awardDetails;
@@ -188,6 +191,35 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
             </div>
             );
         }
+        case PostType.BoxOffice: {
+            if (!post.boxOfficeDetails) return null;
+            const { grossRevenue, ranking, region, sourceUrl } = post.boxOfficeDetails;
+            return (
+            <div className="bg-green-500/10 p-5 rounded-lg border border-green-500/30 text-center">
+                <p className="text-green-300 font-semibold">{region}</p>
+                <p className="text-5xl font-black text-white my-2">${grossRevenue.toLocaleString()}</p>
+                <div className="flex justify-center items-center gap-4">
+                <span className="text-lg font-bold text-white">#{ranking}</span>
+                {sourceUrl && <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-400 hover:text-white underline">Source</a>}
+                </div>
+            </div>
+            );
+        }
+        case PostType.Trivia: {
+            if (!post.triviaDetails) return null;
+            const { triviaItems } = post.triviaDetails;
+            return (
+            <div className="bg-yellow-400/10 p-5 rounded-lg border border-yellow-400/30">
+                <ul className="space-y-3 list-disc list-inside">
+                {triviaItems.map((item, index) => (
+                    <li key={index} className="text-slate-300 italic">
+                    {item}
+                    </li>
+                ))}
+                </ul>
+            </div>
+            );
+        }
         default: return null;
     }
   };
@@ -208,6 +240,8 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
         case PostType.Awards: icon = <span className="material-symbols-outlined text-2xl text-amber-400">emoji_events</span>; titleColor = 'text-amber-300'; break;
         case PostType.Countdown: icon = <span className="material-symbols-outlined text-2xl text-indigo-400">schedule</span>; titleColor = 'text-indigo-300'; break;
         case PostType.Filmography: icon = <span className="material-symbols-outlined text-2xl text-rose-400">video_library</span>; titleColor = 'text-rose-300'; break;
+        case PostType.BoxOffice: icon = <span className="material-symbols-outlined text-2xl text-green-400">monetization_on</span>; titleColor = 'text-green-300'; break;
+        case PostType.Trivia: icon = <span className="material-symbols-outlined text-2xl text-yellow-400">lightbulb</span>; titleColor = 'text-yellow-300'; break;
         default: return null;
     }
     return (
@@ -229,7 +263,7 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
       <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none z-20" aria-hidden="true"></canvas>
 
       <div 
-        className={`bg-slate-800 w-full max-w-2xl h-[95vh] max-h-[800px] rounded-xl shadow-2xl flex flex-col overflow-hidden relative ${isClosing ? 'animate-modal-content-exit' : 'animate-modal-content-enter'}`}
+        className={`bg-slate-800 w-full h-full shadow-2xl flex flex-col overflow-hidden relative sm:rounded-xl sm:max-w-2xl sm:h-[95vh] sm:max-h-[800px] ${isClosing ? 'animate-modal-content-exit' : 'animate-modal-content-enter'}`}
         onClick={e => e.stopPropagation()}
       >
         {/* Modal Header */}
@@ -288,21 +322,23 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
                         key={reaction}
                         type={reaction}
                         count={post.reactions[reaction] || 0}
-                        onClick={() => handleReactionClick(post.id, reaction)}
+                        onClick={(e) => handleReactionClick(e, reaction)}
                         isAnimating={animatingReaction === reaction}
                         />
                     ))}
                 </div>
 
-                <div className="mt-4">
-                    <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Fanz Says ({totalFanzSaysCount.toLocaleString()})</h4>
-                    <CommentSection
-                        fanzSays={post.fanzSays}
-                        onFanzSay={(fanzSayId) => handleFanzSayClick(post.id, fanzSayId)}
-                        currentUserAvatar={currentUserAvatar}
-                        animatingFanzSayId={animatingFanzSayId}
-                    />
-                </div>
+                {post.fanzSaysEnabled !== false && (
+                  <div className="mt-4">
+                      <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Fanz Says ({totalFanzSaysCount.toLocaleString()})</h4>
+                      <CommentSection
+                          fanzSays={post.fanzSays}
+                          onFanzSay={(fanzSayId) => handleFanzSayClick(post.id, fanzSayId)}
+                          currentUserAvatar={currentUserAvatar}
+                          animatingFanzSayId={animatingFanzSayId}
+                      />
+                  </div>
+                )}
             </div>
         </div>
       </div>

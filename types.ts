@@ -28,15 +28,37 @@ export interface FanzSay {
   fans: string[]; // Array of avatar URLs
 }
 
+export interface Episode {
+  season: number;
+  episodeNumber: number;
+  title: string;
+  synopsis: string;
+  thumbnailUrl: string;
+}
+
+export interface Person {
+  name: string;
+  role: string;
+  imageUrl: string;
+  linkedCelebrityId?: string;
+}
+
 export interface MovieDetails {
   id: string;
   title: string;
+  type: 'Movie' | 'TV Series';
   posterUrl: string;
   rating: number; // e.g., 8.7
+  releaseDate: string;
   director: string;
   cast: string[];
   genres: string[];
   synopsis: string;
+  country: string;
+  language: string;
+  productionCompanies: string[];
+  fullCast: Person[];
+  crew: Person[];
 }
 
 export interface CharacterDetails {
@@ -62,6 +84,7 @@ export interface FilmographyItem {
   title: string;
   year: number;
   posterUrl: string;
+  linkedMovieId?: string;
 }
 
 export interface AwardDetails {
@@ -93,6 +116,20 @@ export interface CelebrityDetails {
   birthDate: string; // ISO 8601 format date
 }
 
+export interface BoxOfficeDetails {
+  title: string;
+  grossRevenue: number;
+  ranking: number;
+  region: string;
+  sourceUrl?: string;
+  linkedMovieId?: string;
+}
+
+export interface TriviaDetails {
+  title: string;
+  triviaItems: string[];
+  linkedCelebrityId?: string;
+}
 
 export interface Post {
   id: string;
@@ -109,16 +146,25 @@ export interface Post {
     subtitle?: string;
   };
   movieDetails?: MovieDetails;
+  episodes?: Episode[];
   characterDetails?: CharacterDetails;
   countdownDetails?: CountdownDetails;
   filmographyDetails?: FilmographyItem[];
   awardDetails?: AwardDetails;
   projectAnnouncementDetails?: ProjectAnnouncementDetails;
   celebrityDetails?: CelebrityDetails;
+  boxOfficeDetails?: BoxOfficeDetails;
+  triviaDetails?: TriviaDetails;
   reactions: { [key in ReactionType]?: number };
   fanzSays?: FanzSay[];
+  fanzSaysEnabled?: boolean;
   linkedMovieIds?: string[];
   linkedCelebrityIds?: string[];
+}
+
+export interface HypeLogEntry {
+  movieId: string;
+  timestamp: string; // ISO 8601 format
 }
 
 export interface UserProfileData {

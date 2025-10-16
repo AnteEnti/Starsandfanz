@@ -10,7 +10,7 @@ import ActionsView from './admin/ActionsView';
 
 interface AdminPageProps {
   posts: Post[];
-  onAddPost: (postData: Omit<Post, 'id' | 'author' | 'avatar' | 'timestamp' | 'reactions' | 'fanzSays'>) => void;
+  onAddPost: (postData: Omit<Post, 'id' | 'author' | 'avatar' | 'timestamp'>) => void;
   onUpdatePost: (post: Post) => void;
   onDeletePost: (postId: string) => void;
 }
@@ -53,12 +53,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ posts, onAddPost, onUpdatePost, o
     setActiveView('posts');
   };
 
-  const handleSavePost = (postData: Omit<Post, 'id' | 'author' | 'avatar' | 'timestamp' | 'reactions' | 'fanzSays'>) => {
+  const handleSavePost = (postData: Omit<Post, 'id' | 'author' | 'avatar' | 'timestamp'>) => {
     if (postToEdit && postToEdit.id) {
       onUpdatePost({ ...postToEdit, ...postData });
     } else {
       const finalPostData = { ...(postToEdit || {}), ...postData };
-      onAddPost(finalPostData as Omit<Post, 'id' | 'author' | 'avatar' | 'timestamp' | 'reactions' | 'fanzSays'>);
+      onAddPost(finalPostData as Omit<Post, 'id' | 'author' | 'avatar' | 'timestamp'>);
     }
     setPostManagementSubView('list');
     setPostToEdit(null);

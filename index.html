@@ -86,6 +86,87 @@
       .animate-modal-content-exit {
         animation: modal-zoom-out 0.3s ease-out forwards;
       }
+      @keyframes slide-and-fade-out {
+        from {
+          opacity: 1;
+          transform: scale(1);
+          max-width: 160px; /* w-40 */
+          margin-right: 1rem; /* space-x-4 */
+          padding-left: 0.75rem; /* p-3 */
+          padding-right: 0.75rem;
+        }
+        to {
+          opacity: 0;
+          transform: scale(0.8);
+          max-width: 0;
+          margin-right: 0;
+          padding-left: 0;
+          padding-right: 0;
+        }
+      }
+      .animate-slide-and-fade-out {
+        animation: slide-and-fade-out 1.5s forwards;
+        overflow: hidden;
+      }
+      @keyframes shrink-and-fade-out {
+        from {
+          opacity: 1;
+          transform: scale(1);
+          max-height: 200px;
+          padding-top: 1.25rem; /* p-5 */
+          padding-bottom: 1.25rem;
+          margin-bottom: 1.5rem; /* from space-y-6 */
+        }
+        to {
+          opacity: 0;
+          transform: scale(0.95);
+          max-height: 0;
+          padding-top: 0;
+          padding-bottom: 0;
+          margin-bottom: 0;
+        }
+      }
+      .animate-shrink-and-fade-out {
+        animation: shrink-and-fade-out 1.5s forwards;
+        overflow: hidden;
+      }
+      @keyframes page-enter {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-page-enter {
+        animation: page-enter 0.4s ease-out forwards;
+      }
+       @keyframes fade-in-up {
+        from {
+          opacity: 0;
+          transform: translateY(1rem);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in-up {
+        animation: fade-in-up 0.6s ease-out forwards;
+        opacity: 0;
+      }
+      .text-shadow {
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+      }
+      @keyframes glitter {
+        0%, 100% { transform: scale(1); opacity: 1; text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #fef08a; }
+        50% { transform: scale(1.2) rotate(5deg); opacity: 0.8; text-shadow: 0 0 10px #fff, 0 0 20px #fef08a, 0 0 30px #fef08a; }
+      }
+      .animate-glitter {
+        animation: glitter 2.5s ease-in-out infinite;
+      }
     </style>
   <script type="importmap">
 {

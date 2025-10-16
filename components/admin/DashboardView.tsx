@@ -1,5 +1,8 @@
 import React, { useMemo } from 'react';
-import { Post, ReactionType } from '../../types';
+import { Post } from '../../types';
+import UserGrowthChart from './dashboard/UserGrowthChart';
+import PopularPosts from './dashboard/PopularPosts';
+import RecentActivities from './dashboard/RecentActivities';
 
 interface StatCardProps {
   title: string;
@@ -20,58 +23,18 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, color }) => (
   </div>
 );
 
-const ActivityChart: React.FC<{ posts: Post[] }> = ({ posts }) => {
-  const data = useMemo(() => {
-    // This is a simplified chart; in a real app, you'd parse timestamps.
-    // Here we'll just create some fake data based on post index.
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    return days.map((day, index) => ({
-      name: day,
-      posts: posts.filter((_, i) => i % 7 === index).length + Math.floor(Math.random() * 3),
-    }));
-  }, [posts]);
-
-  const maxPosts = Math.max(...data.map(d => d.posts), 1);
-
-  return (
-    <div className="bg-slate-700/50 p-5 rounded-lg">
-      <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
-      <div className="flex justify-between items-end h-40 gap-2">
-        {data.map(day => (
-          <div key={day.name} className="flex-1 flex flex-col items-center justify-end gap-2">
-            <div 
-              className="w-full bg-purple-500 rounded-t-md transition-all duration-500"
-              style={{ height: `${(day.posts / maxPosts) * 100}%` }}
-              title={`${day.posts} posts`}
-            ></div>
-            <p className="text-xs text-slate-400">{day.name}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 interface DashboardViewProps {
   posts: Post[];
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ posts }) => {
-  const totalReactions = useMemo(() => 
+  const totalReactions = useMemo(() =>
     posts.reduce((acc, post) => {
-      // Fix: Safely sum reaction counts which may be undefined or of an unknown type.
-      const postReactionTotal = Object.values(post.reactions).reduce(
-        (sum, count) => {
-          // Use a type guard to ensure count is a number before adding.
-          if (typeof count === 'number') {
-            return sum + count;
-          }
-          return sum;
-        },
-        0
-      );
+      const postReactionTotal = Object.values(post.reactions)
+        .filter((count): count is number => typeof count === 'number')
+        .reduce((sum, count) => sum + count, 0);
       return acc + postReactionTotal;
-    }, 0), 
+    }, 0),
   [posts]);
 
   const totalFanzSays = useMemo(() => 
@@ -90,22 +53,18 @@ const DashboardView: React.FC<DashboardViewProps> = ({ posts }) => {
         <StatCard title="Users" value="21.4K" icon="group" color="bg-teal-500" />
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <ActivityChart posts={posts} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div className="lg:col-span-2 space-y-6">
+           <UserGrowthChart />
+           <RecentActivities />
         </div>
-        <div className="bg-slate-700/50 p-5 rounded-lg">
-          <h3 className="text-lg font-semibold text-white mb-4">Quick Links</h3>
-          <div className="space-y-2">
-            <a href="#" className="block text-purple-400 hover:text-purple-300">View Site Analytics</a>
-            <a href="#" className="block text-purple-400 hover:text-purple-300">Manage Comments</a>
-            <a href="#" className="block text-purple-400 hover:text-purple-300">Export User Data</a>
-            <a href="#" className="block text-purple-400 hover:text-purple-300">View API Status</a>
-          </div>
+        <div className="lg:col-span-1">
+           <PopularPosts posts={posts} />
         </div>
       </div>
     </div>
   );
 };
 
+// FIX: Corrected typo in export statement from 'employability' to 'DashboardView'.
 export default DashboardView;

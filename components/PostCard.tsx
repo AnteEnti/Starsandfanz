@@ -16,6 +16,7 @@ interface PostCardProps {
   onFanzSay: (postId: string, fanzSayId: string) => void;
   currentUserAvatar: string;
   onViewFullPost: (post: Post) => void;
+  onViewMoviePage: (movieId: string) => void;
 }
 
 const CONTENT_TRUNCATE_LENGTH = 300;
@@ -44,7 +45,7 @@ const AnimatedCommentTeaser: React.FC<{topComments: FanzSay[], totalCount: numbe
     </div>
 );
 
-const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, currentUserAvatar, onViewFullPost }) => {
+const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, currentUserAvatar, onViewFullPost, onViewMoviePage }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [isOverflowing, setIsOverflowing] = useState(false);
@@ -99,8 +100,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
     }
   };
 
-  const handleReactionClick = (postId: string, reactionType: ReactionType) => {
-    onReaction(postId, reactionType);
+  const handleReactionClick = (event: React.MouseEvent, reactionType: ReactionType) => {
+    onReaction(post.id, reactionType);
     if (reactionType === ReactionType.Celebrate) {
       triggerConfetti();
     }
@@ -137,38 +138,40 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
         if (!post.movieDetails) return null;
         const { posterUrl, title, rating, synopsis, director, cast, genres } = post.movieDetails;
         return (
-            <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden">
-            <img src={posterUrl} alt={`${title} poster`} className="w-full md:w-1/3 object-cover" />
-            <div className="p-5 flex-1">
-                <div className="flex justify-between items-start mb-2">
-                <h4 className="text-2xl font-bold text-white">{title}</h4>
-                <div className="flex items-center space-x-1 bg-amber-500 text-white font-bold px-2 py-1 rounded-md text-sm">
-                    <StarIcon className="h-4 w-4" />
-                    <span>{rating.toFixed(1)}</span>
-                </div>
-                </div>
-                <p className="text-sm text-slate-300 mb-4 italic">"{synopsis}"</p>
-                
-                <div className="space-y-3 text-sm">
-                <div>
-                    <strong className="text-purple-300">Director:</strong>
-                    <span className="text-slate-200 ml-2">{director}</span>
-                </div>
-                <div>
-                    <strong className="text-purple-300">Cast:</strong>
-                    <span className="text-slate-200 ml-2">{cast.join(', ')}</span>
-                </div>
-                </div>
+            <button onClick={() => onViewMoviePage(post.movieDetails!.id)} className="w-full text-left transition-transform duration-300 hover:scale-[1.02]">
+              <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden">
+                <img src={posterUrl} alt={`${title} poster`} className="w-full md:w-1/3 object-cover" />
+                <div className="p-5 flex-1">
+                    <div className="flex justify-between items-start mb-2">
+                    <h4 className="text-2xl font-bold text-white">{title}</h4>
+                    <div className="flex items-center space-x-1 bg-amber-500 text-white font-bold px-2 py-1 rounded-md text-sm">
+                        <StarIcon className="h-4 w-4" />
+                        <span>{rating.toFixed(1)}</span>
+                    </div>
+                    </div>
+                    <p className="text-sm text-slate-300 mb-4 italic line-clamp-3">"{synopsis}"</p>
+                    
+                    <div className="space-y-3 text-sm">
+                    <div>
+                        <strong className="text-purple-300">Director:</strong>
+                        <span className="text-slate-200 ml-2">{director}</span>
+                    </div>
+                    <div>
+                        <strong className="text-purple-300">Cast:</strong>
+                        <span className="text-slate-200 ml-2 line-clamp-1">{cast.join(', ')}</span>
+                    </div>
+                    </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                {genres.map(genre => (
-                    <span key={genre} className="bg-slate-600 text-xs font-semibold text-slate-200 px-2.5 py-1 rounded-full">
-                    {genre}
-                    </span>
-                ))}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                    {genres.map(genre => (
+                        <span key={genre} className="bg-slate-600 text-xs font-semibold text-slate-200 px-2.5 py-1 rounded-full">
+                        {genre}
+                        </span>
+                    ))}
+                    </div>
                 </div>
-            </div>
-            </div>
+              </div>
+            </button>
         );
       }
       
@@ -243,7 +246,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
       }
       case PostType.Filmography:
         if (!post.filmographyDetails) return null;
-        return <FilmographyCarousel movies={post.filmographyDetails} />;
+        return <FilmographyCarousel movies={post.filmographyDetails} onViewMoviePage={onViewMoviePage} />;
       
       case PostType.Awards: {
         if (!post.awardDetails) return null;
@@ -284,6 +287,35 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
                 </div>
               </div>
             </div>
+          </div>
+        );
+      }
+      case PostType.BoxOffice: {
+        if (!post.boxOfficeDetails) return null;
+        const { grossRevenue, ranking, region, sourceUrl } = post.boxOfficeDetails;
+        return (
+          <div className="bg-green-500/10 p-5 rounded-lg border border-green-500/30 text-center">
+            <p className="text-green-300 font-semibold">{region}</p>
+            <p className="text-5xl font-black text-white my-2">${grossRevenue.toLocaleString()}</p>
+            <div className="flex justify-center items-center gap-4">
+              <span className="text-lg font-bold text-white">#{ranking}</span>
+              {sourceUrl && <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-slate-400 hover:text-white underline">Source</a>}
+            </div>
+          </div>
+        );
+      }
+      case PostType.Trivia: {
+        if (!post.triviaDetails) return null;
+        const { triviaItems } = post.triviaDetails;
+        return (
+          <div className="bg-yellow-400/10 p-5 rounded-lg border border-yellow-400/30">
+            <ul className="space-y-3 list-disc list-inside">
+              {triviaItems.map((item, index) => (
+                <li key={index} className="text-slate-300 italic">
+                  {item}
+                </li>
+              ))}
+            </ul>
           </div>
         );
       }
@@ -343,6 +375,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
             icon = <span className="material-symbols-outlined text-2xl text-rose-400">video_library</span>;
             titleColor = 'text-rose-300';
             break;
+        case PostType.BoxOffice:
+            icon = <span className="material-symbols-outlined text-2xl text-green-400">monetization_on</span>;
+            titleColor = 'text-green-300';
+            break;
+        case PostType.Trivia:
+            icon = <span className="material-symbols-outlined text-2xl text-yellow-400">lightbulb</span>;
+            titleColor = 'text-yellow-300';
+            break;
         default:
             return null;
     }
@@ -366,7 +406,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
   const hasEventHeader = [
     PostType.Anniversary, PostType.Birthday, PostType.MovieDetails, 
     PostType.CharacterIntroduction, PostType.Awards, PostType.Countdown, 
-    PostType.Filmography, PostType.ProjectAnnouncement, PostType.Celebrity
+    PostType.Filmography, PostType.ProjectAnnouncement, PostType.Celebrity,
+    PostType.BoxOffice, PostType.Trivia,
   ].includes(post.type);
 
   return (
@@ -444,55 +485,57 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
                   key={reaction}
                   type={reaction}
                   count={post.reactions[reaction] || 0}
-                  onClick={() => handleReactionClick(post.id, reaction)}
+                  onClick={(e) => handleReactionClick(e, reaction)}
                   isAnimating={animatingReaction === reaction}
                 />
               ))}
           </div>
 
-          {isCommentSectionVisible ? (
-            <>
-              <div className="flex items-center justify-between mt-4">
-                  <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Fanz Says ({totalFanzSaysCount.toLocaleString()})</h4>
-                  <button 
-                      onClick={() => setIsCommentSectionVisible(false)}
-                      className="text-xs text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1"
-                      aria-label="Hide comments"
-                  >
-                      <span className="material-symbols-outlined text-base">unfold_less</span>
-                      Hide
-                  </button>
+          {post.fanzSaysEnabled !== false && (
+            isCommentSectionVisible ? (
+              <>
+                <div className="flex items-center justify-between mt-4">
+                    <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Fanz Says ({totalFanzSaysCount.toLocaleString()})</h4>
+                    <button 
+                        onClick={() => setIsCommentSectionVisible(false)}
+                        className="text-xs text-purple-400 hover:text-purple-300 font-semibold flex items-center gap-1"
+                        aria-label="Hide comments"
+                    >
+                        <span className="material-symbols-outlined text-base">unfold_less</span>
+                        Hide
+                    </button>
+                </div>
+                <CommentSection
+                    fanzSays={post.fanzSays}
+                    onFanzSay={(fanzSayId) => handleFanzSayClick(post.id, fanzSayId)}
+                    currentUserAvatar={currentUserAvatar}
+                    animatingFanzSayId={animatingFanzSayId}
+                />
+              </>
+            ) : (
+              <div onClick={() => setIsCommentSectionVisible(true)} aria-hidden="true">
+                {topComments.length > 0 ? (
+                    <AnimatedCommentTeaser topComments={topComments} totalCount={totalFanzSaysCount} />
+                ) : (
+                    <div className="mt-4">
+                        <button
+                            className="w-full text-left bg-slate-700/50 hover:bg-slate-700 p-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            aria-label="Show comments"
+                        >
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-slate-400">
+                                    Be the first to say something!
+                                </span>
+                                <span className="text-sm font-semibold text-purple-300 flex items-center gap-1">
+                                    Comments
+                                    <span className="material-symbols-outlined text-base">chat_bubble</span>
+                                </span>
+                            </div>
+                        </button>
+                    </div>
+                )}
               </div>
-              <CommentSection
-                  fanzSays={post.fanzSays}
-                  onFanzSay={(fanzSayId) => handleFanzSayClick(post.id, fanzSayId)}
-                  currentUserAvatar={currentUserAvatar}
-                  animatingFanzSayId={animatingFanzSayId}
-              />
-            </>
-          ) : (
-            <div onClick={() => setIsCommentSectionVisible(true)} aria-hidden="true">
-              {topComments.length > 0 ? (
-                  <AnimatedCommentTeaser topComments={topComments} totalCount={totalFanzSaysCount} />
-              ) : (
-                  <div className="mt-4">
-                      <button
-                          className="w-full text-left bg-slate-700/50 hover:bg-slate-700 p-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          aria-label="Show comments"
-                      >
-                          <div className="flex items-center justify-between">
-                              <span className="text-sm text-slate-400">
-                                  Be the first to say something!
-                              </span>
-                              <span className="text-sm font-semibold text-purple-300 flex items-center gap-1">
-                                  Comments
-                                  <span className="material-symbols-outlined text-base">chat_bubble</span>
-                              </span>
-                          </div>
-                      </button>
-                  </div>
-              )}
-            </div>
+            )
           )}
         </div>
       </div>

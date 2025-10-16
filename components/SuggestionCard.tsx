@@ -5,17 +5,20 @@ interface SuggestionCardProps {
   suggestion: Suggestion;
   onToggleFan: (suggestionId: string) => void;
   onStartUnfan: (suggestionId: string, suggestionName: string) => void;
+  disappearsOnFan?: boolean;
 }
 
-const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onToggleFan, onStartUnfan }) => {
+const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onToggleFan, onStartUnfan, disappearsOnFan = false }) => {
   const { id, name, avatar, type, isFanned } = suggestion;
   const [feedback, setFeedback] = useState<{ type: 'fan' | 'unfan'; key: number } | null>(null);
   const prevIsFannedRef = useRef(isFanned);
+  const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
-    if (prevIsFannedRef.current !== isFanned) {
+    // This effect handles the feedback when the card does NOT disappear (e.g., in profile)
+    if (prevIsFannedRef.current !== isFanned && !disappearsOnFan) {
       const feedbackType = isFanned ? 'fan' : 'unfan';
-      setFeedback({ type: feedbackType, key: Date.now() }); // Use key to re-trigger animation
+      setFeedback({ type: feedbackType, key: Date.now() });
 
       const timer = setTimeout(() => {
         setFeedback(null);
@@ -25,16 +28,34 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onToggleFan
       
       return () => clearTimeout(timer);
     }
-  }, [isFanned]);
+  }, [isFanned, disappearsOnFan]);
+
+  const handleFanAndDisappear = () => {
+    if (isExiting) return; // Prevent double-clicks
+    
+    // Manually trigger feedback animation
+    setFeedback({ type: 'fan', key: Date.now() });
+    
+    // Start exit animation on the card itself
+    setIsExiting(true);
+
+    // After the exit animation completes, call the parent handler to update global state
+    setTimeout(() => {
+      onToggleFan(id);
+    }, 1500); // This should match the CSS animation duration
+  };
 
   const fanButtonStyle = "w-full flex items-center justify-center space-x-2 font-semibold py-2 px-4 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 bg-purple-600 hover:bg-purple-700 text-white focus:ring-purple-500";
   
   const cardBaseStyle = "relative flex-shrink-0 w-40 bg-slate-800 rounded-lg shadow-lg p-3 text-center transition-all duration-300";
   const notFannedStyle = `${cardBaseStyle} transform hover:-translate-y-1`;
   const isFannedStyle = `${cardBaseStyle} border-2 border-purple-500 shadow-purple-500/20`;
+  
+  const finalCardStyle = isFanned ? isFannedStyle : notFannedStyle;
+  const exitAnimationClass = isExiting ? 'animate-slide-and-fade-out' : '';
 
   return (
-    <div className={isFanned ? isFannedStyle : notFannedStyle}>
+    <div className={`${finalCardStyle} ${exitAnimationClass}`}>
       {feedback && (
         <div 
           key={feedback.key} 
@@ -71,7 +92,7 @@ const SuggestionCard: React.FC<SuggestionCardProps> = ({ suggestion, onToggleFan
         </div>
       ) : (
         <button
-          onClick={() => onToggleFan(id)}
+          onClick={disappearsOnFan ? handleFanAndDisappear : () => onToggleFan(id)}
           className={fanButtonStyle}
           aria-pressed={isFanned}
         >

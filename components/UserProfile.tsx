@@ -21,6 +21,7 @@ interface UserProfileProps {
     stars: string[];
   };
   onViewFullPost: (post: Post) => void;
+  onViewMoviePage: (movieId: string) => void;
 }
 
 const UserProfile: React.FC<UserProfileProps> = ({
@@ -33,7 +34,8 @@ const UserProfile: React.FC<UserProfileProps> = ({
   onFanzSay,
   onUpdateProfile,
   favoriteOptions,
-  onViewFullPost
+  onViewFullPost,
+  onViewMoviePage
 }) => {
   const [isEditing, setIsEditing] = useState(false);
 
@@ -89,6 +91,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 onFanzSay={onFanzSay}
                 currentUserAvatar={user.avatar}
                 onViewFullPost={onViewFullPost}
+                onViewMoviePage={onViewMoviePage}
               />
             ))}
           </div>

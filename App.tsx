@@ -1,5 +1,6 @@
+
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Post, ReactionType, Suggestion, SuggestionType, PostType, FanzSay, UserProfileData } from './types';
+import { Post, ReactionType, Suggestion, SuggestionType, PostType, FanzSay, UserProfileData, HypeLogEntry } from './types';
 import Header from './components/Header';
 import PostCard from './components/PostCard';
 import SuggestionCarousel from './components/SuggestionCarousel';
@@ -9,6 +10,7 @@ import AdminPage from './components/AdminPage';
 import PostCardSkeleton from './components/PostCardSkeleton';
 import ContentModal from './components/ContentModal';
 import InFeedSuggestion from './components/InFeedSuggestion';
+import MoviePage from './components/MoviePage';
 
 const createFanAvatars = (count: number, seed: string) => 
   Array.from({ length: count }, (_, i) => `https://i.pravatar.cc/150?u=${seed}-${i}`);
@@ -110,6 +112,58 @@ const INITIAL_POSTS: Post[] = [
     linkedMovieIds: [MOVIE_CHRONOS_PROPHECY_ID],
     linkedCelebrityIds: [CELEB_LEO_STARLIGHT_ID],
   },
+  {
+    id: 'post-box-office-1',
+    type: PostType.BoxOffice,
+    author: 'Star Sphere Admin',
+    avatar: 'https://i.pravatar.cc/150?u=admin',
+    timestamp: '1 day ago',
+    content: "'Chronos Prophecy' continues to dominate, smashing records in its opening weekend! An incredible achievement for the entire team.",
+    eventDetails: {
+      title: "Weekend Box Office",
+    },
+    boxOfficeDetails: {
+      title: "Chronos Prophecy",
+      grossRevenue: 152500000,
+      ranking: 1,
+      region: "Domestic Weekend",
+      sourceUrl: '#',
+      linkedMovieId: MOVIE_CHRONOS_PROPHECY_ID,
+    },
+    reactions: { [ReactionType.Celebrate]: 14000 },
+    fanzSays: [
+      { id: 'sc-bo-1', text: 'Record breaking! 💰', fans: createFanAvatars(10, 'bo1') },
+      { id: 'sc-bo-2', text: 'Absolutely deserved!', fans: createFanAvatars(8, 'bo2') },
+    ],
+    linkedMovieIds: [MOVIE_CHRONOS_PROPHECY_ID],
+  },
+  {
+    id: 'post-trivia-1',
+    type: PostType.Trivia,
+    author: 'Star Sphere Admin',
+    avatar: 'https://i.pravatar.cc/150?u=admin',
+    timestamp: '3 days ago',
+    content: "How well do you know Leo Starlight? Here are a few fun facts you might not have known about the superstar!",
+    eventDetails: {
+      title: "Did You Know?",
+    },
+    triviaDetails: {
+      title: "Leo Starlight Trivia",
+      triviaItems: [
+        "He is an accomplished painter and has had several gallery showings.",
+        "He speaks three languages fluently.",
+        "Before acting, he was a trained chef at a Michelin-starred restaurant.",
+        "He performed all of his own stunts in 'Chronos Prophecy'."
+      ],
+      linkedCelebrityId: CELEB_LEO_STARLIGHT_ID,
+    },
+    reactions: { [ReactionType.Love]: 8900 },
+    fanzSays: [
+      { id: 'sc-trivia-1', text: 'Wow, I had no idea!', fans: createFanAvatars(7, 'trivia1') },
+      { id: 'sc-trivia-2', text: 'So talented!', fans: createFanAvatars(5, 'trivia2') },
+    ],
+    linkedCelebrityIds: [CELEB_LEO_STARLIGHT_ID],
+  },
    {
     id: 'post-project-announce-1',
     type: PostType.ProjectAnnouncement,
@@ -178,7 +232,7 @@ const INITIAL_POSTS: Post[] = [
       title: "A Look Back: Filmography",
     },
     filmographyDetails: [
-      { id: 'film-1', title: 'Chronos Prophecy', year: 2019, posterUrl: 'https://picsum.photos/seed/chronos-prophecy-poster/400/600' },
+      { id: 'film-1', title: 'Chronos Prophecy', year: 2019, posterUrl: 'https://picsum.photos/seed/chronos-prophecy-poster/400/600', linkedMovieId: MOVIE_CHRONOS_PROPHECY_ID },
       { id: 'film-2', title: 'Crimson Tide', year: 2017, posterUrl: 'https://picsum.photos/seed/crimson-tide-poster/400/600' },
       { id: 'film-3', title: 'Echoes of a Dream', year: 2015, posterUrl: 'https://picsum.photos/seed/echoes-dream-poster/400/600' },
       { id: 'film-4', title: 'Neon Shadows', year: 2013, posterUrl: 'https://picsum.photos/seed/neon-shadows-poster/400/600' },
@@ -207,7 +261,7 @@ const INITIAL_POSTS: Post[] = [
     celebrityDetails: {
       id: CELEB_LEO_STARLIGHT_ID,
       name: 'Leo Starlight',
-      imageUrl: 'https://i.pravatar.cc/500?u=leo-starlight-spotlight',
+      imageUrl: 'https://i.pravatar.cc/150?u=leo-starlight',
       knownFor: 'Actor, Producer, Philanthropist',
       bio: "A versatile actor known for his captivating performances, Leo Starlight has graced the screen for over two decades, winning numerous accolades and the hearts of fans worldwide. His dedication to his craft is matched only by his commitment to environmental causes.",
       notableWorks: ['Chronos Prophecy', 'Crimson Tide', 'Echoes of a Dream', 'Neon Shadows'],
@@ -222,6 +276,46 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-celeb-2', text: 'An inspiration!', fans: createFanAvatars(7, 'celeb2') },
       { id: 'sc-celeb-3', text: 'Legend!', fans: [] },
     ],
+  },
+   {
+    id: 'post-celeb-aria-blaze',
+    type: PostType.Celebrity,
+    author: 'Star Sphere Admin',
+    avatar: 'https://i.pravatar.cc/150?u=admin',
+    timestamp: '2 days ago',
+    content: "Shining a spotlight on the immensely talented Aria Blaze, whose performance in 'Chronos Prophecy' left us all speechless.",
+    eventDetails: { title: "Celebrity Spotlight" },
+    celebrityDetails: {
+      id: CELEB_ARIA_BLAZE_ID,
+      name: 'Aria Blaze',
+      imageUrl: 'https://i.pravatar.cc/150?u=aria-blaze',
+      knownFor: 'Actress, Singer',
+      bio: "Aria Blaze is a powerhouse of talent, known for her dynamic range and emotional depth. She burst onto the scene with her debut album before conquering Hollywood.",
+      notableWorks: ['Chronos Prophecy', 'Symphony of Souls'],
+      birthDate: '1988-04-21',
+    },
+    reactions: { [ReactionType.Love]: 18000 },
+    fanzSays: [],
+  },
+  {
+    id: 'post-celeb-nova-lux',
+    type: PostType.Celebrity,
+    author: 'Star Sphere Admin',
+    avatar: 'https://i.pravatar.cc/150?u=admin',
+    timestamp: '2 days ago',
+    content: "Let's appreciate Nova Lux, the unforgettable face of resilience and cunning in 'Chronos Prophecy'.",
+    eventDetails: { title: "Celebrity Spotlight" },
+    celebrityDetails: {
+      id: CELEB_NOVA_LUX_ID,
+      name: 'Nova Lux',
+      imageUrl: 'https://i.pravatar.cc/150?u=nova-lux',
+      knownFor: 'Actor, Director',
+      bio: "With a career spanning theatre and film, Nova Lux brings a gravitas to every role. Lux is also an accomplished director, with several award-winning short films to their name.",
+      notableWorks: ['Chronos Prophecy', 'The Last Stand'],
+      birthDate: '1981-09-15',
+    },
+    reactions: { [ReactionType.Love]: 16500 },
+    fanzSays: [],
   },
   {
     id: 'post-bday-1',
@@ -304,6 +398,7 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-announce-2', text: 'So exciting!', fans: createFanAvatars(3, 'announce2') },
       { id: 'sc-announce-3', text: "I'm so participating!", fans: [] },
     ],
+    linkedMovieIds: [MOVIE_GALACTIC_ECHOES_ID],
   },
   {
     id: 'post-movie-1',
@@ -318,13 +413,43 @@ const INITIAL_POSTS: Post[] = [
     movieDetails: {
       id: MOVIE_CHRONOS_PROPHECY_ID,
       title: 'Chronos Prophecy',
+      type: 'TV Series',
       posterUrl: 'https://picsum.photos/seed/chronos-prophecy-poster/500/750',
       rating: 8.7,
+      releaseDate: '2019-10-17',
       director: 'Elara Vance',
       cast: ['Leo Starlight', 'Aria Blaze', 'Nova Lux'],
       genres: ['Sci-Fi', 'Thriller', 'Mystery'],
-      synopsis: 'A brilliant physicist discovers a way to manipulate time, but his invention falls into the wrong hands, forcing him into a desperate race against the clock to prevent a catastrophic alteration of history.',
+      synopsis: 'A brilliant physicist discovers a way to manipulate time, but his invention falls into the wrong hands, forcing him into a desperate race against the clock to prevent a catastrophic alteration of history. The series follows his journey through different timelines to restore order.',
+      country: 'United States',
+      language: 'English',
+      productionCompanies: ['Starlight Productions', 'Quantum Films'],
+      fullCast: [
+        { name: 'Leo Starlight', role: 'Dr. Aris Thorne', imageUrl: 'https://i.pravatar.cc/150?u=leo-starlight', linkedCelebrityId: CELEB_LEO_STARLIGHT_ID },
+        { name: 'Aria Blaze', role: 'Dr. Lena Petrova', imageUrl: 'https://i.pravatar.cc/150?u=aria-blaze', linkedCelebrityId: CELEB_ARIA_BLAZE_ID },
+        { name: 'Nova Lux', role: 'General Eva Rostova', imageUrl: 'https://i.pravatar.cc/150?u=nova-lux', linkedCelebrityId: CELEB_NOVA_LUX_ID },
+        { name: 'Silas Croft', role: 'Ozes Ghambira', imageUrl: 'https://i.pravatar.cc/150?u=silas-croft' },
+        { name: 'Jaxon Kade', role: 'Commander Valerius', imageUrl: 'https://i.pravatar.cc/150?u=jaxon-kade' },
+        { name: 'Lyra Solstice', role: 'The Oracle', imageUrl: 'https://i.pravatar.cc/150?u=lyra-solstice' },
+        { name: 'Orion Pax', role: 'Technician First Class', imageUrl: 'https://i.pravatar.cc/150?u=orion-pax' },
+        { name: 'Seraphina Moon', role: 'Archivist', imageUrl: 'https://i.pravatar.cc/150?u=seraphina-moon' },
+        { name: 'Kaelen', role: 'Temporal Guard', imageUrl: 'https://i.pravatar.cc/150?u=kaelen' },
+        { name: 'Rylan', role: 'Temporal Guard', imageUrl: 'https://i.pravatar.cc/150?u=rylan' },
+      ],
+      crew: [
+        { name: 'Elara Vance', role: 'Director', imageUrl: 'https://i.pravatar.cc/150?u=elara-vance' },
+        { name: 'Kaelen', role: 'Writer', imageUrl: 'https://i.pravatar.cc/150?u=kaelen' },
+        { name: 'Seraphina Moon', role: 'Producer', imageUrl: 'https://i.pravatar.cc/150?u=seraphina-moon' },
+        { name: 'Orion Pax', role: 'Cinematographer', imageUrl: 'https://i.pravatar.cc/150?u=orion-pax' },
+        { name: 'Lyra Solstice', role: 'Composer', imageUrl: 'https://i.pravatar.cc/150?u=lyra-solstice' },
+      ],
     },
+    episodes: [
+        { season: 1, episodeNumber: 1, title: 'The Anomaly', synopsis: 'Dr. Aris Thorne first discovers a temporal anomaly that could change the world.', thumbnailUrl: 'https://picsum.photos/seed/cp-s1e1/400/225' },
+        { season: 1, episodeNumber: 2, title: 'Ripples in Time', synopsis: 'The consequences of the first experiment begin to unfold in unexpected ways.', thumbnailUrl: 'https://picsum.photos/seed/cp-s1e2/400/225' },
+        { season: 1, episodeNumber: 3, title: 'The Ghambira Gambit', synopsis: 'Ozes Ghambira reveals his own plans for the technology, setting up a confrontation.', thumbnailUrl: 'https://picsum.photos/seed/cp-s1e3/400/225' },
+        { season: 1, episodeNumber: 4, title: 'Point of No Return', synopsis: 'Aris must make a choice that will either save the timeline or shatter it forever.', thumbnailUrl: 'https://picsum.photos/seed/cp-s1e4/400/225' },
+    ],
     reactions: {
       [ReactionType.Love]: 15000,
     },
@@ -384,6 +509,7 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-img-3', text: 'Iconic is right!', fans: [] },
       { id: 'sc-img-4', text: 'Setting new trends!', fans: [] },
     ],
+    linkedMovieIds: [MOVIE_GALACTIC_ECHOES_ID],
   },
 ];
 
@@ -410,10 +536,14 @@ const App: React.FC = () => {
   });
   const [isUnfanModalOpen, setIsUnfanModalOpen] = useState(false);
   const [activePost, setActivePost] = useState<Post | null>(null);
+  const [activeMovieId, setActiveMovieId] = useState<string | null>(null);
   const [suggestionToUnfan, setSuggestionToUnfan] = useState<{ id: string; name: string } | null>(null);
   const [activeView, setActiveView] = useState<'feed' | 'profile' | 'admin' | 'favorites'>('feed');
   const [isAdmin] = useState(true); // Dummy admin user
   
+  const [userHypeState, setUserHypeState] = useState({ count: 3, lastReset: new Date().toISOString() });
+  const [hypeLog, setHypeLog] = useState<HypeLogEntry[]>([]);
+
   useEffect(() => {
     // Simulate fetching posts from an API
     const timer = setTimeout(() => {
@@ -423,6 +553,20 @@ const App: React.FC = () => {
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Sync active post in modal with the main posts list
+  useEffect(() => {
+    if (activePost) {
+      const updatedPost = posts.find(p => p.id === activePost.id);
+      if (updatedPost && JSON.stringify(updatedPost) !== JSON.stringify(activePost)) {
+        setActivePost(updatedPost);
+      } else if (!updatedPost) {
+        // Post was deleted, close the modal
+        setActivePost(null);
+      }
+    }
+  }, [posts, activePost]);
+
 
   const handleUpdateProfile = useCallback((newProfile: UserProfileData) => {
     setUserProfile(newProfile);
@@ -450,18 +594,31 @@ const App: React.FC = () => {
       allStars: Array.from(stars),
     };
   }, []);
+  
+  const handleViewMoviePage = useCallback((movieId: string) => {
+    setActiveMovieId(movieId);
+    setActivePost(null); // Close modal if open
+    window.scrollTo(0, 0);
+  }, []);
 
-  const handleAddPost = useCallback((postData: Omit<Post, 'id' | 'author' | 'avatar' | 'timestamp' | 'reactions' | 'fanzSays'>) => {
+  const handleCloseMoviePage = useCallback(() => {
+    setActiveMovieId(null);
+  }, []);
+
+  const handleViewPost = useCallback((post: Post) => {
+    if (post.type === PostType.MovieDetails && post.movieDetails) {
+      handleViewMoviePage(post.movieDetails.id);
+    } else {
+      setActivePost(post);
+    }
+  }, [handleViewMoviePage]);
+
+  const handleAddPost = useCallback((postData: Omit<Post, 'id' | 'author' | 'avatar' | 'timestamp'>) => {
     const newPost: Post = {
       id: `post-${Date.now()}`,
       author: 'Star Sphere Admin',
       avatar: 'https://i.pravatar.cc/150?u=admin',
       timestamp: 'Just now',
-      reactions: {},
-      fanzSays: [
-          { id: `sc-new-${Date.now()}-1`, text: 'This is great!', fans: [] },
-          { id: `sc-new-${Date.now()}-2`, text: 'Awesome!', fans: [] },
-      ],
       ...postData,
     };
     setPosts(prevPosts => [newPost, ...prevPosts]);
@@ -539,6 +696,41 @@ const App: React.FC = () => {
     );
   }, [userProfile.avatar]);
 
+  const handleHype = useCallback((movieId: string) => {
+    const now = new Date();
+    const lastResetDate = new Date(userHypeState.lastReset);
+
+    // Get the last Monday. 0=Sun, 1=Mon, ..., 6=Sat
+    const todayDay = now.getDay();
+    const daysSinceMonday = todayDay === 0 ? 6 : todayDay - 1;
+    const lastMonday = new Date(now);
+    lastMonday.setDate(now.getDate() - daysSinceMonday);
+    lastMonday.setHours(0, 0, 0, 0);
+
+    let newCount = userHypeState.count;
+    let newResetDate = userHypeState.lastReset;
+
+    if (lastResetDate < lastMonday) {
+        newCount = 3; // Reset hypes
+        newResetDate = now.toISOString();
+    }
+
+    if (newCount > 0) {
+        newCount--;
+        // In a real app, this action would be sent to a server.
+        console.log(`Hyped movie ${movieId}! Hypes left this week: ${newCount}`);
+        setHypeLog(prevLog => [...prevLog, { movieId, timestamp: new Date().toISOString() }]);
+    } else {
+        console.log("No hypes left for this week.");
+        return; // Don't update state if no hypes left
+    }
+
+    setUserHypeState({
+        count: newCount,
+        lastReset: newResetDate,
+    });
+  }, [userHypeState]);
+
   const fannedSuggestions = useMemo(() => suggestions.filter(s => s.isFanned), [suggestions]);
   
   const interactedPosts = useMemo(() => 
@@ -590,103 +782,124 @@ const App: React.FC = () => {
         userAvatar={userProfile.avatar}
         isAdmin={isAdmin}
       />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 sm:pb-6">
-        {activeView === 'feed' && (
-          <div className="max-w-2xl mx-auto">
-            {unfannedSuggestions.length > 0 && (
-              <SuggestionCarousel 
-                suggestions={unfannedSuggestions} 
-                onToggleFan={handleToggleFan}
-                onStartUnfan={handleStartUnfan}
-              />
-            )}
+      
+      {activeMovieId ? (
+        <MoviePage 
+          movieId={activeMovieId}
+          posts={posts}
+          onClose={handleCloseMoviePage}
+          onReaction={handleReaction}
+          onFanzSay={handleFanzSay}
+          currentUserAvatar={userProfile.avatar}
+          onViewMoviePage={handleViewMoviePage}
+          onViewFullPost={handleViewPost}
+          userHypeState={userHypeState}
+          onHype={handleHype}
+          hypeLog={hypeLog}
+        />
+      ) : (
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 sm:pb-6">
+          {activeView === 'feed' && (
+            <div className="max-w-2xl mx-auto">
+              {unfannedSuggestions.length > 0 && (
+                <SuggestionCarousel 
+                  suggestions={unfannedSuggestions} 
+                  onToggleFan={handleToggleFan}
+                  onStartUnfan={handleStartUnfan}
+                />
+              )}
 
-            <div className="space-y-6 mt-6">
-              {isLoading ? (
-                Array.from({ length: 5 }).map((_, index) => <PostCardSkeleton key={index} />)
+              <div className="space-y-6 mt-6">
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, index) => <PostCardSkeleton key={index} />)
+                ) : (
+                  feedItems.map((item) => {
+                    if ('id' in item) { // It's a Post
+                      return (
+                        <PostCard 
+                          key={item.id} 
+                          post={item} 
+                          onReaction={handleReaction}
+                          onFanzSay={handleFanzSay}
+                          currentUserAvatar={userProfile.avatar}
+                          onViewFullPost={handleViewPost}
+                          onViewMoviePage={handleViewMoviePage}
+                        />
+                      );
+                    } else { // It's a suggestion
+                      return (
+                        <InFeedSuggestion 
+                          key={`sugg-feed-${item.suggestion.id}`} 
+                          suggestion={item.suggestion} 
+                          onToggleFan={handleToggleFan}
+                        />
+                      );
+                    }
+                  })
+                )}
+              </div>
+            </div>
+          )}
+          
+          {activeView === 'favorites' && (
+            <div className="max-w-2xl mx-auto">
+              <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-rose-400">favorite</span>
+                Your Favorites Feed
+              </h2>
+              {favoritesFeed.length > 0 ? (
+                  <div className="space-y-6">
+                      {favoritesFeed.map(post => (
+                          <PostCard 
+                              key={post.id} 
+                              post={post} 
+                              onReaction={handleReaction}
+                              onFanzSay={handleFanzSay}
+                              currentUserAvatar={userProfile.avatar}
+                              onViewFullPost={handleViewPost}
+                              onViewMoviePage={handleViewMoviePage}
+                          />
+                      ))}
+                  </div>
               ) : (
-                feedItems.map((item) => {
-                  if ('id' in item) { // It's a Post
-                    return (
-                      <PostCard 
-                        key={item.id} 
-                        post={item} 
-                        onReaction={handleReaction}
-                        onFanzSay={handleFanzSay}
-                        currentUserAvatar={userProfile.avatar}
-                        onViewFullPost={setActivePost}
-                      />
-                    );
-                  } else { // It's a suggestion
-                    return (
-                      <InFeedSuggestion 
-                        key={`sugg-feed-${item.suggestion.id}`} 
-                        suggestion={item.suggestion} 
-                        onToggleFan={handleToggleFan}
-                      />
-                    );
-                  }
-                })
+                  <div className="text-center py-20 bg-slate-800 rounded-lg mt-6">
+                      <span className="material-symbols-outlined text-6xl text-slate-500">favorite</span>
+                      <h2 className="mt-4 text-2xl font-bold text-white">Your Feed is Empty</h2>
+                      <p className="mt-2 text-slate-400">Fan some celebrities or topics to see related posts here!</p>
+                  </div>
               )}
             </div>
-          </div>
-        )}
-        
-        {activeView === 'favorites' && (
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-rose-400">favorite</span>
-              Your Favorites Feed
-            </h2>
-            {favoritesFeed.length > 0 ? (
-                <div className="space-y-6">
-                    {favoritesFeed.map(post => (
-                        <PostCard 
-                            key={post.id} 
-                            post={post} 
-                            onReaction={handleReaction}
-                            onFanzSay={handleFanzSay}
-                            currentUserAvatar={userProfile.avatar}
-                            onViewFullPost={setActivePost}
-                        />
-                    ))}
-                </div>
-            ) : (
-                <div className="text-center py-20 bg-slate-800 rounded-lg mt-6">
-                    <span className="material-symbols-outlined text-6xl text-slate-500">favorite</span>
-                    <h2 className="mt-4 text-2xl font-bold text-white">Your Feed is Empty</h2>
-                    <p className="mt-2 text-slate-400">Fan some celebrities or topics to see related posts here!</p>
-                </div>
-            )}
-          </div>
-        )}
+          )}
 
-        {activeView === 'profile' && (
-          <div className="max-w-2xl mx-auto">
-            <UserProfile
-              user={userProfile}
-              fannedItems={fannedSuggestions}
-              interactedPosts={interactedPosts}
-              onToggleFan={handleToggleFan}
-              onStartUnfan={handleStartUnfan}
-              onReaction={handleReaction}
-              onFanzSay={handleFanzSay}
-              onUpdateProfile={handleUpdateProfile}
-              favoriteOptions={{ genres: allGenres, movies: allMovies, stars: allStars }}
-              onViewFullPost={setActivePost}
+          {activeView === 'profile' && (
+            <div className="max-w-2xl mx-auto">
+              <UserProfile
+                user={userProfile}
+                fannedItems={fannedSuggestions}
+                interactedPosts={interactedPosts}
+                // FIX: Pass the correct handler for onToggleFan. `handleStartUnfan` has the wrong signature. `handleToggleFan` is correct.
+                onToggleFan={handleToggleFan}
+                onStartUnfan={handleStartUnfan}
+                onReaction={handleReaction}
+                onFanzSay={handleFanzSay}
+                onUpdateProfile={handleUpdateProfile}
+                favoriteOptions={{ genres: allGenres, movies: allMovies, stars: allStars }}
+                onViewFullPost={handleViewPost}
+                onViewMoviePage={handleViewMoviePage}
+              />
+            </div>
+          )}
+
+          {activeView === 'admin' && isAdmin && (
+            <AdminPage 
+              posts={posts}
+              onAddPost={handleAddPost}
+              onUpdatePost={handleUpdatePost}
+              onDeletePost={handleDeletePost}
             />
-          </div>
-        )}
-
-        {activeView === 'admin' && isAdmin && (
-          <AdminPage 
-            posts={posts}
-            onAddPost={handleAddPost}
-            onUpdatePost={handleUpdatePost}
-            onDeletePost={handleDeletePost}
-          />
-        )}
-      </main>
+          )}
+        </main>
+      )}
       
       {isUnfanModalOpen && suggestionToUnfan && (
         <Modal
@@ -706,6 +919,7 @@ const App: React.FC = () => {
           onReaction={handleReaction}
           onFanzSay={handleFanzSay}
           currentUserAvatar={userProfile.avatar}
+          onViewMoviePage={handleViewMoviePage}
         />
       )}
     </>
