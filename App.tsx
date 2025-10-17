@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Post, Suggestion, SuggestionType, PostType, FanzSay, UserProfileData, HypeLogEntry, Reaction } from './types';
 import Header from './components/Header';
@@ -592,10 +591,11 @@ const App: React.FC = () => {
 
   // Handle scroll for banner minimization
   useEffect(() => {
+    // This effect should only trigger minimization once on scroll down,
+    // and not re-open the banner on scroll up.
     const handleScroll = () => {
-      const shouldBeMinimized = window.scrollY > 50;
-      if (shouldBeMinimized !== isBannerMinimized) {
-        setIsBannerMinimized(shouldBeMinimized);
+      if (window.scrollY > 50 && !isBannerMinimized) {
+        setIsBannerMinimized(true);
       }
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -603,6 +603,12 @@ const App: React.FC = () => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, [isBannerMinimized]);
+
+  const handleReopenBanner = useCallback(() => {
+    setIsBannerMinimized(false);
+    // Scroll to top for a smooth experience
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
 
   const handleUpdateProfile = useCallback((newProfile: UserProfileData) => {
@@ -819,17 +825,19 @@ const App: React.FC = () => {
     });
   }, [posts, fannedSuggestionLinkedIds]);
 
-  const favoriteStarAvatars = useMemo(() => {
+  // Create a memoized map of all celebrity names to their avatars for efficient lookup.
+  const celebrityAvatarMap = useMemo(() => {
     const celebAvatars = new Map<string, string>();
 
-    // Get avatars from suggestions
+    // Source avatars from suggestions first
     INITIAL_SUGGESTIONS.forEach(sugg => {
-      if (sugg.type === SuggestionType.Celeb) {
+      if (sugg.type === SuggestionType.Celeb && sugg.name && sugg.avatar) {
         celebAvatars.set(sugg.name, sugg.avatar);
       }
     });
 
-    // Get avatars from celebrity posts to be more comprehensive
+    // Then, source from celebrity-specific posts, adding any not already present.
+    // This ensures the map is as comprehensive as possible.
     INITIAL_POSTS.forEach(post => {
       if (post.type === PostType.Celebrity && post.celebrityDetails) {
         if (!celebAvatars.has(post.celebrityDetails.name)) {
@@ -838,10 +846,16 @@ const App: React.FC = () => {
       }
     });
 
+    return celebAvatars;
+  }, []); // Empty dependency array as posts/suggestions are constant and don't change.
+
+  // Use the map to dynamically get the avatars for the user's currently favorited stars.
+  // This list will automatically update when the user's profile changes.
+  const favoriteStarAvatars = useMemo(() => {
     return userProfile.favoriteStars
-      .map(starName => celebAvatars.get(starName))
-      .filter((avatar): avatar is string => !!avatar);
-  }, [userProfile.favoriteStars]);
+      .map(starName => celebrityAvatarMap.get(starName))
+      .filter((avatar): avatar is string => !!avatar); // Filter out any stars not found in the map
+  }, [userProfile.favoriteStars, celebrityAvatarMap]);
 
   return (
     <>
@@ -860,6 +874,7 @@ const App: React.FC = () => {
         isBannerVisible={isWelcomeBannerVisible && isBannerMinimized}
         bannerContent={bannerContent}
         onDismissBanner={() => setIsWelcomeBannerVisible(false)}
+        onReopenBanner={handleReopenBanner}
       />
       
       {activeMovieId ? (

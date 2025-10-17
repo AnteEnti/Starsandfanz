@@ -464,8 +464,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
   ].includes(post.type);
 
   return (
-    <>
-      <div id={`post-card-${post.id}`} className="relative bg-slate-800 rounded-xl shadow-2xl overflow-hidden w-full border border-slate-700 max-h-[780px] flex flex-col">
+    <div className="relative rounded-[14px] bg-gradient-to-r from-orange-400 via-fuchsia-500 to-indigo-500 p-[2px] animate-gradient-border">
+      <div id={`post-card-${post.id}`} className="relative bg-slate-800 rounded-xl shadow-2xl overflow-hidden w-full max-h-[780px] flex flex-col">
         <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none z-20" aria-hidden="true"></canvas>
         
         {/* Static Header */}
@@ -593,7 +593,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

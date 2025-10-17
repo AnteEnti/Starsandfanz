@@ -13,6 +13,7 @@ interface HeaderProps {
   isBannerVisible: boolean;
   bannerContent: BannerContent;
   onDismissBanner: () => void;
+  onReopenBanner: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
@@ -23,20 +24,27 @@ const Header: React.FC<HeaderProps> = ({
   isAdmin, 
   isBannerVisible, 
   bannerContent,
-  onDismissBanner
+  onDismissBanner,
+  onReopenBanner
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [avatarIndex, setAvatarIndex] = useState(0);
   const allAvatars = useMemo(() => [userAvatar, ...favoriteStarAvatars], [userAvatar, favoriteStarAvatars]);
   
-  const frontAvatar = allAvatars[avatarIndex];
+  const frontAvatar = allAvatars[avatarIndex % allAvatars.length];
   const backAvatar = allAvatars.length > 1 ? allAvatars[(avatarIndex + 1) % allAvatars.length] : frontAvatar;
 
+  // Use a stringified version of the array for the dependency.
+  // This ensures the effect re-runs when the content of the avatars changes, not just the length.
+  const avatarDependency = JSON.stringify(allAvatars);
+
   useEffect(() => {
+    // When the list of avatars changes, reset the animation state.
+    setAvatarIndex(0);
+    setIsFlipped(false);
+
     if (allAvatars.length <= 1) {
-      setIsFlipped(false);
-      setAvatarIndex(0);
-      return;
+      return; // No need for an interval if there's only one image.
     }
 
     const flipInterval = setInterval(() => {
@@ -44,19 +52,19 @@ const Header: React.FC<HeaderProps> = ({
     }, 4000); // Flip every 4 seconds
 
     return () => clearInterval(flipInterval);
-  }, [allAvatars.length]);
+  }, [avatarDependency]); // Dependency on the stringified avatar list.
 
   useEffect(() => {
     if (allAvatars.length <= 1 || !isFlipped) return;
 
     // When the card flips to its back, set a timer to update the avatar index.
-    // The new index will be on the "front" when it flips back.
     const swapTimer = setTimeout(() => {
+        // Use a functional update to get the latest index and array length
         setAvatarIndex(current => (current + 1) % allAvatars.length);
     }, 500); // Half of the 1s animation duration
 
     return () => clearTimeout(swapTimer);
-  }, [isFlipped, allAvatars.length]);
+  }, [isFlipped, avatarDependency]); // Dependency on the stringified avatar list.
   
   const navItems: { id: ActiveView; label: string; icon: string }[] = [
     { id: 'feed', label: 'Feed', icon: 'home' },
@@ -86,11 +94,24 @@ const Header: React.FC<HeaderProps> = ({
       {/* --- Desktop Header --- */}
       <header className="bg-slate-800/80 backdrop-blur-sm sticky top-0 z-40 shadow-lg">
         <div className={`transition-all duration-300 ease-out overflow-hidden ${isBannerVisible ? 'max-h-16' : 'max-h-0'}`}>
-          <div className="bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 text-slate-900 p-2 text-center text-sm font-semibold flex items-center justify-center gap-4">
+          <div
+            onClick={onReopenBanner}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onReopenBanner(); }}
+            role="button"
+            tabIndex={0}
+            className="bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 text-slate-900 p-2 text-center text-sm font-semibold flex items-center justify-center gap-4 cursor-pointer group"
+          >
             <span className="hidden sm:inline">🎉</span>
-            <span className="truncate">{bannerContent.headline1} <span className="font-black text-white">{bannerContent.headline2}</span></span>
+            <span className="truncate group-hover:underline">{bannerContent.headline1} <span className="font-black text-white">{bannerContent.headline2}</span></span>
              <span className="hidden sm:inline">🥳</span>
-            <button onClick={onDismissBanner} className="ml-auto flex-shrink-0" aria-label="Dismiss banner">
+            <button 
+              onClick={(e) => { 
+                e.stopPropagation();
+                onDismissBanner();
+              }}
+              className="ml-auto flex-shrink-0 p-1 rounded-full hover:bg-black/20 transition-colors"
+              aria-label="Dismiss banner"
+            >
               <span className="material-symbols-outlined text-base">close</span>
             </button>
           </div>
