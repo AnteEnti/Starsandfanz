@@ -111,7 +111,7 @@
       @keyframes shrink-and-fade-out {
         from {
           opacity: 1;
-          transform: scale(1);
+          transform: scale(0.95);
           max-height: 200px;
           padding-top: 1.25rem; /* p-5 */
           padding-bottom: 1.25rem;
@@ -157,15 +157,78 @@
         animation: fade-in-up 0.6s ease-out forwards;
         opacity: 0;
       }
+      @keyframes fade-in-down {
+        from {
+          opacity: 0;
+          transform: translateY(-1rem);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in-down {
+        animation: fade-in-down 0.5s ease-out forwards;
+      }
       .text-shadow {
         text-shadow: 0 2px 4px rgba(0,0,0,0.5);
       }
       @keyframes glitter {
-        0%, 100% { transform: scale(1); opacity: 1; text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #fef08a; }
-        50% { transform: scale(1.2) rotate(5deg); opacity: 0.8; text-shadow: 0 0 10px #fff, 0 0 20px #fef08a, 0 0 30px #fef08a; }
+        to {
+          background-position: -200% center;
+        }
       }
       .animate-glitter {
-        animation: glitter 2.5s ease-in-out infinite;
+        background-image: linear-gradient(
+          to right,
+          #a855f7,
+          #ffffff,
+          #fde047,
+          #ffffff,
+          #a855f7
+        );
+        background-size: 200% auto;
+        color: transparent;
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: glitter 3s linear infinite;
+        display: inline-block; /* Required for background-clip to work as expected */
+        padding-top: 0.5rem; /* Add padding to prevent clipping on tall characters */
+        padding-bottom: 0.5rem; /* Add padding to prevent clipping on tall characters */
+        margin-top: -0.5rem; /* Counteract padding to maintain vertical alignment */
+        margin-bottom: -0.5rem; /* Counteract padding to maintain vertical alignment */
+      }
+      @keyframes emoji-pop-float {
+        0%, 100% {
+          transform: translateY(0) scale(1) rotate(0deg);
+          opacity: 1;
+        }
+        25% {
+          transform: translateY(-20px) scale(1.2) rotate(-10deg);
+        }
+        50% {
+          transform: translateY(5px) scale(0.9) rotate(5deg);
+          opacity: 0.9;
+        }
+        75% {
+          transform: translateY(-10px) scale(1.1) rotate(-5deg);
+        }
+      }
+      .animate-emoji-pop-float {
+        animation: emoji-pop-float ease-in-out;
+        will-change: transform, opacity;
+      }
+      @keyframes text-glow {
+        0%, 100% {
+          text-shadow: 0 0 5px rgba(255, 255, 255, 0.5), 0 0 10px rgba(168, 85, 247, 0.5);
+        }
+        50% {
+          text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(168, 85, 247, 0.8);
+        }
+      }
+      .animate-text-glow {
+        animation: text-glow 3s ease-in-out infinite;
       }
     </style>
   <script type="importmap">

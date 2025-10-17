@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type AdminView = 'dashboard' | 'posts' | 'media' | 'users' | 'actions' | 'settings';
+export type AdminView = 'dashboard' | 'posts' | 'media' | 'users' | 'actions' | 'content' | 'settings';
 
 interface AdminSidebarProps {
   activeView: AdminView;
@@ -13,6 +13,7 @@ const navItems: { id: AdminView; label: string; icon: string }[] = [
   { id: 'media', label: 'Media', icon: 'perm_media' },
   { id: 'users', label: 'Users', icon: 'group' },
   { id: 'actions', label: 'Actions', icon: 'notifications' },
+  { id: 'content', label: 'Content', icon: 'edit_note' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
 ];
 

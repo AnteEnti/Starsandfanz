@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo, useLayoutEffect } from 'react';
+import React, { useRef, useState, useMemo, useLayoutEffect, useEffect } from 'react';
 import { Post, Reaction, FanzSay } from '../types';
 import ReactionButton from './ReactionButton';
 import CommentSection from './CommentSection';
@@ -53,8 +53,63 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
   const [isExpanded, setIsExpanded] = useState(false);
   const [animatingFanzSayId, setAnimatingFanzSayId] = useState<string | null>(null);
   const [isCommentSectionVisible, setIsCommentSectionVisible] = useState(false);
+  const confettiClickCounter = useRef(0);
+  const confettiInstance = useRef<any>(null);
+
+  useEffect(() => {
+    if (canvasRef.current && !confettiInstance.current) {
+      confettiInstance.current = confetti.create(canvasRef.current, { 
+          resize: true,
+          useWorker: true,
+          disableForReducedMotion: true,
+      });
+    }
+  }, []);
 
   const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+  const makeItRain = () => {
+    if (!confettiInstance.current) return;
+    
+    const duration = 4 * 1000;
+    const end = Date.now() + duration;
+    const colors = ['#a855f7', '#ffffff', '#fde047'];
+
+    (function frame() {
+      confettiInstance.current({
+        particleCount: 2,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors: colors,
+        scalar: 0.9,
+      });
+      confettiInstance.current({
+        particleCount: 2,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1 },
+        colors: colors,
+        scalar: 0.9,
+      });
+
+      if (Date.now() < end) {
+        requestAnimationFrame(frame);
+      }
+    }());
+  };
+
+  const triggerRandomConfetti = () => {
+    if (confettiInstance.current) {
+      confettiInstance.current({
+        angle: randomInRange(55, 125),
+        spread: randomInRange(50, 70),
+        particleCount: randomInRange(50, 100),
+        origin: { y: 0.6 },
+        scalar: 0.9, // Make particles smaller
+      });
+    }
+  };
   
   useLayoutEffect(() => {
     const checkOverflow = () => {
@@ -88,18 +143,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
     return { totalFanzSaysCount: count, topComments: top };
   }, [post.fanzSays]);
 
-  const triggerConfetti = () => {
-    if (canvasRef.current) {
-      const myConfetti = confetti.create(canvasRef.current, { resize: true, useWorker: true });
-      myConfetti({
-        angle: randomInRange(55, 125),
-        spread: randomInRange(50, 70),
-        particleCount: randomInRange(50, 100),
-        origin: { y: 0.6 },
-      });
-    }
-  };
-
   const handleReactionClick = (event: React.MouseEvent, reactionId: string) => {
     const reaction = post.reactions.find(r => r.id === reactionId);
     if (!reaction) return;
@@ -107,7 +150,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
     onReaction(post.id, reactionId);
 
     if (reaction.emoji === '🎉') {
-      triggerConfetti();
+      confettiClickCounter.current += 1;
+      if (confettiClickCounter.current > 10) {
+        makeItRain();
+        confettiClickCounter.current = 0; // Reset
+      } else {
+        triggerRandomConfetti();
+      }
     }
     if (reaction.emoji === '🥳') {
       setAnimatingReaction('🥳');

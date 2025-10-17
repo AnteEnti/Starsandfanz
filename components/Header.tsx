@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { StarIcon } from './icons';
+import { BannerContent } from '../App';
 
 type ActiveView = 'feed' | 'profile' | 'admin' | 'favorites';
 
@@ -9,9 +10,21 @@ interface HeaderProps {
   userAvatar: string;
   favoriteStarAvatars: string[];
   isAdmin: boolean;
+  isBannerVisible: boolean;
+  bannerContent: BannerContent;
+  onDismissBanner: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, userAvatar, favoriteStarAvatars, isAdmin }) => {
+const Header: React.FC<HeaderProps> = ({ 
+  activeView, 
+  setActiveView, 
+  userAvatar, 
+  favoriteStarAvatars, 
+  isAdmin, 
+  isBannerVisible, 
+  bannerContent,
+  onDismissBanner
+}) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [avatarIndex, setAvatarIndex] = useState(0);
   const allAvatars = useMemo(() => [userAvatar, ...favoriteStarAvatars], [userAvatar, favoriteStarAvatars]);
@@ -71,7 +84,17 @@ const Header: React.FC<HeaderProps> = ({ activeView, setActiveView, userAvatar, 
   return (
     <>
       {/* --- Desktop Header --- */}
-      <header className="bg-slate-800/50 backdrop-blur-sm sticky top-0 z-10 shadow-lg">
+      <header className="bg-slate-800/80 backdrop-blur-sm sticky top-0 z-40 shadow-lg">
+        <div className={`transition-all duration-300 ease-out overflow-hidden ${isBannerVisible ? 'max-h-16' : 'max-h-0'}`}>
+          <div className="bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 text-slate-900 p-2 text-center text-sm font-semibold flex items-center justify-center gap-4">
+            <span className="hidden sm:inline">🎉</span>
+            <span className="truncate">{bannerContent.headline1} <span className="font-black text-white">{bannerContent.headline2}</span></span>
+             <span className="hidden sm:inline">🥳</span>
+            <button onClick={onDismissBanner} className="ml-auto flex-shrink-0" aria-label="Dismiss banner">
+              <span className="material-symbols-outlined text-base">close</span>
+            </button>
+          </div>
+        </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">

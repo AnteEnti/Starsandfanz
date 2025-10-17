@@ -58,7 +58,7 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
 
   const triggerConfetti = () => {
     if (canvasRef.current) {
-      const myConfetti = confetti.create(canvasRef.current, { resize: true, useWorker: true });
+      const myConfetti = confetti.create(canvasRef.current, { useWorker: true });
       myConfetti({
         angle: randomInRange(55, 125),
         spread: randomInRange(50, 70),

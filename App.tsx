@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Post, Suggestion, SuggestionType, PostType, FanzSay, UserProfileData, HypeLogEntry, Reaction } from './types';
 import Header from './components/Header';
@@ -11,6 +12,7 @@ import PostCardSkeleton from './components/PostCardSkeleton';
 import ContentModal from './components/ContentModal';
 import InFeedSuggestion from './components/InFeedSuggestion';
 import MoviePage from './components/MoviePage';
+import WelcomeBanner from './components/WelcomeBanner';
 
 const createFanAvatars = (count: number, seed: string) => 
   Array.from({ length: count }, (_, i) => `https://i.pravatar.cc/150?u=${seed}-${i}`);
@@ -358,8 +360,8 @@ const INITIAL_POSTS: Post[] = [
     videoDuration: 212, // Rick Astley song duration
     reactionsEnabled: true,
     reactions: [
-        { id: 'whistle', emoji: '🥳', count: 3200 },
         { id: 'love', emoji: '❤️', count: 5600 },
+        { id: 'whistle', emoji: '🥳', count: 3200 },
     ],
     fanzSays: [
       { id: 'sc-trailer-1', text: 'Mind Blowing! 🤯', fans: createFanAvatars(4, 'trailer1') },
@@ -487,8 +489,8 @@ const INITIAL_POSTS: Post[] = [
     },
     reactionsEnabled: true,
     reactions: [
-        { id: 'whistle', emoji: '🥳', count: 1100 },
         { id: 'love', emoji: '❤️', count: 9200 },
+        { id: 'whistle', emoji: '🥳', count: 1100 },
     ],
     fanzSays: [
       { id: 'sc-char-1', text: 'Such a complex character!', fans: createFanAvatars(7, 'char1') },
@@ -530,6 +532,11 @@ const INITIAL_SUGGESTIONS: Suggestion[] = [
   { id: 'sugg-6', name: 'Nova Lux', avatar: 'https://i.pravatar.cc/150?u=nova-lux', type: SuggestionType.Celeb, isFanned: false, linkedId: CELEB_NOVA_LUX_ID },
 ];
 
+export interface BannerContent {
+  headline1: string;
+  headline2: string;
+  description: string;
+}
 
 const App: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -551,6 +558,14 @@ const App: React.FC = () => {
   
   const [userHypeState, setUserHypeState] = useState({ count: 3, lastReset: new Date().toISOString() });
   const [hypeLog, setHypeLog] = useState<HypeLogEntry[]>([]);
+  const [isWelcomeBannerVisible, setIsWelcomeBannerVisible] = useState(true);
+  const [isBannerMinimized, setIsBannerMinimized] = useState(false);
+  const [bannerContent, setBannerContent] = useState<BannerContent>({
+    headline1: "నిజమైన అభిమానులు రివ్యూలు అడగరు,",
+    headline2: "సెలబ్రేట్‌ చేసుకుంటారు!",
+    description: "ఇక్కడ ప్రతి సినిమా ఒక జ్ఞాపకం, ప్రతి స్టార్‌ ఒక ఎమోషన్‌.\nఇది విమర్శల స్థలం కాదు, ఇది అభిమానుల హంగామా...........! 🌟\n\nసినిమాలను ప్రేమించే ఫ్యాన్స్‌ కోసమే ఈ వేదిక,\nstarsandfanz.com ki స్వాగతం —",
+  });
+
 
   useEffect(() => {
     // Simulate fetching posts from an API
@@ -575,9 +590,27 @@ const App: React.FC = () => {
     }
   }, [posts, activePost]);
 
+  // Handle scroll for banner minimization
+  useEffect(() => {
+    const handleScroll = () => {
+      const shouldBeMinimized = window.scrollY > 50;
+      if (shouldBeMinimized !== isBannerMinimized) {
+        setIsBannerMinimized(shouldBeMinimized);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isBannerMinimized]);
+
 
   const handleUpdateProfile = useCallback((newProfile: UserProfileData) => {
     setUserProfile(newProfile);
+  }, []);
+
+  const handleUpdateBannerContent = useCallback((newContent: BannerContent) => {
+    setBannerContent(newContent);
   }, []);
 
   const { allGenres, allMovies, allStars } = useMemo(() => {
@@ -812,12 +845,21 @@ const App: React.FC = () => {
 
   return (
     <>
+      {isWelcomeBannerVisible && !isBannerMinimized && (
+        <WelcomeBanner 
+          onDismiss={() => setIsWelcomeBannerVisible(false)} 
+          content={bannerContent}
+        />
+      )}
       <Header 
         activeView={activeView} 
         setActiveView={setActiveView} 
         userAvatar={userProfile.avatar}
         favoriteStarAvatars={favoriteStarAvatars}
         isAdmin={isAdmin}
+        isBannerVisible={isWelcomeBannerVisible && isBannerMinimized}
+        bannerContent={bannerContent}
+        onDismissBanner={() => setIsWelcomeBannerVisible(false)}
       />
       
       {activeMovieId ? (
@@ -921,7 +963,6 @@ const App: React.FC = () => {
                 onUpdateProfile={handleUpdateProfile}
                 favoriteOptions={{ genres: allGenres, movies: allMovies, stars: allStars }}
                 onViewFullPost={handleViewPost}
-                // FIX: Corrected typo from `onViewMoviePage` to `handleViewMoviePage`
                 onViewMoviePage={handleViewMoviePage}
               />
             </div>
@@ -933,6 +974,8 @@ const App: React.FC = () => {
               onAddPost={handleAddPost}
               onUpdatePost={handleUpdatePost}
               onDeletePost={handleDeletePost}
+              bannerContent={bannerContent}
+              onUpdateBannerContent={handleUpdateBannerContent}
             />
           )}
         </main>

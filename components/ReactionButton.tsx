@@ -21,7 +21,16 @@ const ReactionButton: React.FC<ReactionButtonProps> = ({ reaction, onClick, isAn
     <>
       <div className="relative group flex justify-center">
         {isAnimating && emoji === '🥳' && (
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full animate-rattle pointer-events-none z-10">
+          <div 
+            className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full animate-rattle pointer-events-none z-10"
+            style={{
+              color: '#f2da5b',
+              fontFamily: "'Jolly Lodger', cursive",
+              fontSize: '4.5rem',
+              textAlign: 'center',
+              textShadow: '0 4px 0 #000, -2px -2px 0 #f4513d, -3px -3px 0 #f2da5b'
+            }}
+          >
             🥳
           </div>
         )}
@@ -41,41 +50,6 @@ const ReactionButton: React.FC<ReactionButtonProps> = ({ reaction, onClick, isAn
           {label}
         </div>
       </div>
-      <style>{`
-        @keyframes rattle {
-          0% {
-            transform: translateX(-2px); 
-            letter-spacing: -0.012em;
-          }
-          25% {
-            transform: translateY(-2px) rotate(-1deg);
-          }
-          50% {
-            transform: translateX(1px);
-            text-shadow: 0 1px 0 #000, 
-              1px 1px 0 #f4513d,
-              2px 2px 0 #f2da5b,
-              -3px -5px 0 #f4513d,
-              -4px -6px 0 rgba(242, 218, 91, 0.6);
-          }
-          75% {
-            transform: translateY(1px);
-          }
-          100% {
-            transform: translateY(-2px); 
-          }
-        }
-        .animate-rattle {
-          animation: rattle 0.08s infinite alternate;
-          color: #f2da5b;
-          font-family: 'Jolly Lodger', cursive;
-          font-size: 4.5rem;
-          text-align: center;
-          text-shadow: 0 4px 0 #000, 
-            -2px -2px 0 #f4513d,
-            -3px -3px 0 #f2da5b;
-        }
-      `}</style>
     </>
   );
 };

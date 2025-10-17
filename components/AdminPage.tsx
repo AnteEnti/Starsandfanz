@@ -7,15 +7,19 @@ import UserManagementView from './admin/UserManagementView';
 import MediaView from './admin/MediaView';
 import SettingsView from './admin/SettingsView';
 import ActionsView from './admin/ActionsView';
+import { BannerContent } from '../App';
+import ContentManagementView from './admin/ContentManagementView';
 
 interface AdminPageProps {
   posts: Post[];
   onAddPost: (postData: Omit<Post, 'id' | 'author' | 'avatar' | 'timestamp'>) => void;
   onUpdatePost: (post: Post) => void;
   onDeletePost: (postId: string) => void;
+  bannerContent: BannerContent;
+  onUpdateBannerContent: (newContent: BannerContent) => void;
 }
 
-const AdminPage: React.FC<AdminPageProps> = ({ posts, onAddPost, onUpdatePost, onDeletePost }) => {
+const AdminPage: React.FC<AdminPageProps> = ({ posts, onAddPost, onUpdatePost, onDeletePost, bannerContent, onUpdateBannerContent }) => {
   const [activeView, setActiveView] = useState<AdminView>('dashboard');
   
   // State for PostManagementView is now managed here
@@ -101,6 +105,11 @@ const AdminPage: React.FC<AdminPageProps> = ({ posts, onAddPost, onUpdatePost, o
         return <UserManagementView />;
       case 'actions':
         return <ActionsView posts={posts} onCreatePost={handleCreatePostFromAction} />;
+      case 'content':
+        return <ContentManagementView
+                  bannerContent={bannerContent}
+                  onUpdateBannerContent={onUpdateBannerContent} 
+                />;
       case 'settings':
         return <SettingsView />;
       default:
