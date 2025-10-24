@@ -1,12 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { Person } from '../../types';
 
 interface PeopleSectionProps {
   title: string;
   people: Person[];
+  onViewCelebrityPage?: (celebrityId: string) => void;
 }
 
-const PeopleModal: React.FC<{ title: string, people: Person[], onClose: () => void }> = ({ title, people, onClose }) => {
+const PeopleModal: React.FC<{ title: string, people: Person[], onClose: () => void, onViewCelebrityPage?: (celebrityId: string) => void }> = ({ title, people, onClose, onViewCelebrityPage }) => {
   const [isClosing, setIsClosing] = useState(false);
 
   const handleClose = () => {
@@ -44,19 +46,33 @@ const PeopleModal: React.FC<{ title: string, people: Person[], onClose: () => vo
         </div>
         <div className="flex-1 overflow-y-auto p-4">
           <ul className="space-y-3">
-            {people.map((member, index) => (
-              <li key={index} className="flex items-center gap-4 p-2 rounded-lg hover:bg-slate-700/50">
-                <img
-                  src={member.imageUrl}
-                  alt={member.name}
-                  className="w-12 h-12 rounded-full object-cover flex-shrink-0"
-                />
-                <div className="flex-1">
-                  <p className="font-semibold text-white">{member.name}</p>
-                  <p className="text-sm text-slate-400">{member.role}</p>
-                </div>
-              </li>
-            ))}
+            {people.map((member, index) => {
+              const content = (
+                <>
+                  <img
+                    src={member.imageUrl}
+                    alt={member.name}
+                    className="w-12 h-12 rounded-full object-cover flex-shrink-0"
+                  />
+                  <div className="flex-1">
+                    <p className="font-semibold text-white">{member.name}</p>
+                    <p className="text-sm text-slate-400">{member.role}</p>
+                  </div>
+                </>
+              );
+
+              return member.linkedCelebrityId && onViewCelebrityPage ? (
+                <li key={index}>
+                  <button onClick={() => onViewCelebrityPage(member.linkedCelebrityId!)} className="w-full flex items-center gap-4 p-2 rounded-lg hover:bg-slate-700/50 text-left">
+                    {content}
+                  </button>
+                </li>
+              ) : (
+                <li key={index} className="flex items-center gap-4 p-2 rounded-lg">
+                  {content}
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>
@@ -65,7 +81,7 @@ const PeopleModal: React.FC<{ title: string, people: Person[], onClose: () => vo
 };
 
 
-const PeopleSection: React.FC<PeopleSectionProps> = ({ title, people }) => {
+const PeopleSection: React.FC<PeopleSectionProps> = ({ title, people, onViewCelebrityPage }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const previewPeople = people.slice(0, 7);
 
@@ -78,19 +94,31 @@ const PeopleSection: React.FC<PeopleSectionProps> = ({ title, people }) => {
       <section className="animate-fade-in-up" style={{animationDelay: '100ms'}}>
         <h2 className="text-3xl font-bold text-white mb-4 border-b-2 border-purple-500/30 pb-2">{title}</h2>
         <div className="flex space-x-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
-          {previewPeople.map(person => (
-            <div key={person.name} className="flex-shrink-0 w-32 text-center group">
-              <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-2 border-slate-700 group-hover:border-purple-500 transition-colors duration-300">
-                <img 
-                  src={person.imageUrl} 
-                  alt={person.name}
-                  className="w-full h-full object-cover"
-                />
+          {previewPeople.map(person => {
+            const personContent = (
+              <>
+                <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-2 border-slate-700 group-hover:border-purple-500 transition-colors duration-300">
+                  <img 
+                    src={person.imageUrl} 
+                    alt={person.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <h3 className="text-sm font-semibold text-white mt-2 truncate">{person.name}</h3>
+                <p className="text-xs text-slate-400 truncate">{person.role}</p>
+              </>
+            );
+
+            return person.linkedCelebrityId && onViewCelebrityPage ? (
+              <button key={person.name} onClick={() => onViewCelebrityPage(person.linkedCelebrityId!)} className="flex-shrink-0 w-32 text-center group">
+                {personContent}
+              </button>
+            ) : (
+              <div key={person.name} className="flex-shrink-0 w-32 text-center group">
+                {personContent}
               </div>
-              <h3 className="text-sm font-semibold text-white mt-2 truncate">{person.name}</h3>
-              <p className="text-xs text-slate-400 truncate">{person.role}</p>
-            </div>
-          ))}
+            );
+          })}
           {people.length > previewPeople.length && (
             <div className="flex-shrink-0 w-32 text-center flex flex-col items-center justify-center">
                 <button 
@@ -105,7 +133,7 @@ const PeopleSection: React.FC<PeopleSectionProps> = ({ title, people }) => {
         </div>
       </section>
 
-      {isModalOpen && <PeopleModal title={`Full ${title}`} people={people} onClose={() => setIsModalOpen(false)} />}
+      {isModalOpen && <PeopleModal title={`Full ${title}`} people={people} onClose={() => setIsModalOpen(false)} onViewCelebrityPage={onViewCelebrityPage} />}
     </>
   );
 };

@@ -14,6 +14,7 @@ interface UserProfileProps {
   onStartUnfan: (suggestionId: string, suggestionName: string) => void;
   onReaction: (postId: string, reactionId: string) => void;
   onFanzSay: (postId: string, fanzSayId: string) => void;
+  onRatePost: (postId: string, rating: number) => void;
   onUpdateProfile: (newProfile: UserProfileData) => void;
   favoriteOptions: {
     genres: string[];
@@ -22,6 +23,7 @@ interface UserProfileProps {
   };
   onViewFullPost: (post: Post) => void;
   onViewMoviePage: (movieId: string) => void;
+  onViewCelebrityPage: (celebrityId: string) => void;
 }
 
 const UserProfile: React.FC<UserProfileProps> = ({
@@ -32,10 +34,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
   onStartUnfan,
   onReaction,
   onFanzSay,
+  onRatePost,
   onUpdateProfile,
   favoriteOptions,
   onViewFullPost,
-  onViewMoviePage
+  onViewMoviePage,
+  onViewCelebrityPage
 }) => {
   const [isEditing, setIsEditing] = useState(false);
 
@@ -89,9 +93,11 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 post={post}
                 onReaction={onReaction}
                 onFanzSay={onFanzSay}
+                onRatePost={onRatePost}
                 currentUserAvatar={user.avatar}
                 onViewFullPost={onViewFullPost}
                 onViewMoviePage={onViewMoviePage}
+                onViewCelebrityPage={onViewCelebrityPage}
               />
             ))}
           </div>

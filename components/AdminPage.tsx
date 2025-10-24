@@ -1,5 +1,7 @@
+
+
 import React, { useState, useMemo } from 'react';
-import { Post, PostType } from '../types';
+import { Post, PostType, Banner, SiteSettings } from '../types';
 import AdminSidebar, { AdminView } from './admin/AdminSidebar';
 import DashboardView from './admin/DashboardView';
 import PostManagementView from './admin/PostManagementView';
@@ -7,43 +9,32 @@ import UserManagementView from './admin/UserManagementView';
 import MediaView from './admin/MediaView';
 import SettingsView from './admin/SettingsView';
 import ActionsView from './admin/ActionsView';
-import { BannerContent } from '../App';
-import ContentManagementView from './admin/ContentManagementView';
+import BannerManagementView from './admin/ContentManagementView';
+import AIPostGenerator from './admin/AIPostGenerator';
+import AnalyticsOverviewView from './admin/analytics/AnalyticsOverviewView';
+import UserGrowthView from './admin/analytics/UserGrowthView';
+import PopularPostsView from './admin/analytics/PopularPostsView';
+import ApiKeysView from './admin/ApiKeysView';
+import BrandingView from './admin/BrandingView';
 
 interface AdminPageProps {
   posts: Post[];
   onAddPost: (postData: Omit<Post, 'id' | 'author' | 'avatar' | 'timestamp'>) => void;
   onUpdatePost: (post: Post) => void;
   onDeletePost: (postId: string) => void;
-  bannerContent: BannerContent;
-  onUpdateBannerContent: (newContent: BannerContent) => void;
+  banners: Banner[];
+  onUpdateBanners: (newBanners: Banner[]) => void;
+  allMovies: { id: string, title: string }[];
+  allCelebrities: { id: string, name: string }[];
+  siteSettings: SiteSettings;
+  onUpdateSiteSettings: (newSettings: SiteSettings) => void;
 }
 
-const AdminPage: React.FC<AdminPageProps> = ({ posts, onAddPost, onUpdatePost, onDeletePost, bannerContent, onUpdateBannerContent }) => {
+const AdminPage: React.FC<AdminPageProps> = ({ posts, onAddPost, onUpdatePost, onDeletePost, banners, onUpdateBanners, allMovies, allCelebrities, siteSettings, onUpdateSiteSettings }) => {
   const [activeView, setActiveView] = useState<AdminView>('dashboard');
   
-  // State for PostManagementView is now managed here
   const [postManagementSubView, setPostManagementSubView] = useState<'list' | 'form'>('list');
   const [postToEdit, setPostToEdit] = useState<Post | null>(null);
-
-  const { allMovies, allCelebrities } = useMemo(() => {
-    const movies = new Map<string, string>();
-    const celebrities = new Map<string, string>();
-
-    posts.forEach(p => {
-        if (p.type === PostType.MovieDetails && p.movieDetails?.id && p.movieDetails.title) {
-            movies.set(p.movieDetails.id, p.movieDetails.title);
-        }
-        if (p.type === PostType.Celebrity && p.celebrityDetails?.id && p.celebrityDetails.name) {
-            celebrities.set(p.celebrityDetails.id, p.celebrityDetails.name);
-        }
-    });
-
-    return {
-        allMovies: Array.from(movies.entries()).map(([id, title]) => ({ id, title })),
-        allCelebrities: Array.from(celebrities.entries()).map(([id, name]) => ({ id, name })),
-    };
-  }, [posts]);
 
   const handleEditPost = (post: Post) => {
     setPostToEdit(post);
@@ -51,8 +42,14 @@ const AdminPage: React.FC<AdminPageProps> = ({ posts, onAddPost, onUpdatePost, o
     setActiveView('posts');
   };
   
-  const handleCreateNewPost = () => {
-    setPostToEdit(null);
+  const handleCreateNewPost = (type?: PostType) => {
+    if (type) {
+      // Create a template with the pre-selected type for the form
+      setPostToEdit({ type } as Post);
+    } else {
+      // Global create button - no pre-selected type
+      setPostToEdit(null);
+    }
     setPostManagementSubView('form');
     setActiveView('posts');
   };
@@ -74,9 +71,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ posts, onAddPost, onUpdatePost, o
     setPostToEdit(null);
   };
   
-  const handleCreatePostFromAction = (template: Partial<Post>) => {
-    // This creates a template for a new post, so it has no ID.
-    // The `postToEdit` state will hold this template.
+  const handleCreatePostFromTemplate = (template: Partial<Post>) => {
     setPostToEdit(template as Post);
     setPostManagementSubView('form');
     setActiveView('posts');
@@ -104,14 +99,33 @@ const AdminPage: React.FC<AdminPageProps> = ({ posts, onAddPost, onUpdatePost, o
       case 'users':
         return <UserManagementView />;
       case 'actions':
-        return <ActionsView posts={posts} onCreatePost={handleCreatePostFromAction} />;
-      case 'content':
-        return <ContentManagementView
-                  bannerContent={bannerContent}
-                  onUpdateBannerContent={onUpdateBannerContent} 
+        return <ActionsView posts={posts} onCreatePost={handleCreatePostFromTemplate} />;
+      case 'ai_copilot':
+        return <AIPostGenerator 
+                 allMovies={allMovies} 
+                 allCelebrities={allCelebrities}
+                 onCreatePost={handleCreatePostFromTemplate}
+               />;
+      case 'api_keys':
+        return <ApiKeysView />;
+      case 'banners':
+        return <BannerManagementView
+                  banners={banners}
+                  onUpdateBanners={onUpdateBanners} 
                 />;
+      case 'branding':
+        return <BrandingView
+                  siteSettings={siteSettings}
+                  onUpdate={onUpdateSiteSettings}
+               />;
       case 'settings':
         return <SettingsView />;
+      case 'analytics_overview':
+        return <AnalyticsOverviewView />;
+      case 'analytics_user_growth':
+        return <UserGrowthView />;
+      case 'analytics_popular_posts':
+        return <PopularPostsView />;
       default:
         return <DashboardView posts={posts} />;
     }

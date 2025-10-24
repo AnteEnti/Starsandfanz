@@ -1,8 +1,28 @@
 import { PostType } from './PostType';
 
+export enum ProjectStatus {
+  Announced = 'Announced',
+  PreProduction = 'Pre-Production',
+  InProduction = 'In Production',
+  PostProduction = 'Post-Production',
+  Completed = 'Completed',
+}
+
+export enum ProjectRelationshipType {
+  Sequel = 'Sequel',
+  Prequel = 'Prequel',
+  Spinoff = 'Spinoff',
+  NewSeason = 'New Season',
+  Universe = 'Part of Universe',
+}
 export interface Reaction {
   id: string; // A unique identifier for the reaction type, e.g., 'love', 'celebrate'
   emoji: string; // The emoji character, e.g., '❤️'
+  count: number;
+}
+
+export interface PostRating {
+  average: number;
   count: number;
 }
 
@@ -100,10 +120,15 @@ export interface AwardDetails {
 export interface ProjectAnnouncementDetails {
   title: string;
   posterUrl: string;
-  status: string; // e.g., "In Production", "Pre-Production"
-  expectedRelease: string; // e.g., "Coming 2025"
-  crew: string; // e.g., "From the director of 'Chronos Prophecy'"
+  status: ProjectStatus;
+  expectedRelease: string;
   logline: string;
+  cast: Person[];
+  crew: Person[];
+  relationship?: {
+    type: ProjectRelationshipType;
+    relatedMovieId: string;
+  };
 }
 
 export interface CelebrityDetails {
@@ -159,8 +184,11 @@ export interface Post {
   reactionsEnabled?: boolean;
   fanzSays?: FanzSay[];
   fanzSaysEnabled?: boolean;
+  rating?: PostRating;
   linkedMovieIds?: string[];
   linkedCelebrityIds?: string[];
+  metaDescription?: string;
+  seoKeywords?: string[];
 }
 
 export interface HypeLogEntry {
@@ -174,4 +202,35 @@ export interface UserProfileData {
   favoriteStars: string[];
   favoriteMovies: string[];
   favoriteGenres: string[];
+}
+
+export interface BannerContent {
+  headline1: string;
+  headline2: string;
+  description: string;
+}
+
+export interface Banner extends BannerContent {
+  id: string;
+  name: string;
+  isActive: boolean;
+  startDate?: string;
+  endDate?: string;
+  targeting?: {
+    device: 'all' | 'desktop' | 'mobile';
+    loggedInStatus: 'all' | 'loggedIn' | 'loggedOut';
+  };
+}
+
+export type ApiServiceName = 'contentSearch' | 'draftGeneration' | 'seoGeneration';
+
+export interface ApiServiceConfig {
+  apiKey: string;
+  model: string;
+}
+
+export interface SiteSettings {
+  siteName: string;
+  logo: string | null;
+  favicon: string | null;
 }

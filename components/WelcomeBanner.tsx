@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { BannerContent } from '../App';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { BannerContent } from '../types';
 
 declare const confetti: any;
 
@@ -28,14 +28,24 @@ const AnimatedEmoji: React.FC<{ emoji: string; top: string; left: string; size: 
 
 const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onDismiss, content }) => {
   const [introStep, setIntroStep] = useState<'idle' | 'start' | 'confetti' | 'slogan-animated'>('idle');
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
+  const canvasRef = useCallback((node: HTMLCanvasElement) => {
+    if (node !== null) {
+      setCanvasEl(node);
+    }
+  }, []);
   const confettiInstance = useRef<any>(null);
   const [clickedEmoji, setClickedEmoji] = useState<'confetti' | 'whistle' | null>(null);
 
   useEffect(() => {
-    // Initialize confetti instance
-    if (canvasRef.current && !confettiInstance.current) {
-      confettiInstance.current = confetti.create(canvasRef.current, { useWorker: true, resize: true });
+    let creationTimeoutId: ReturnType<typeof setTimeout> | undefined;
+    // Defer confetti creation to prevent race conditions with DOM layout.
+    if (canvasEl && !confettiInstance.current) {
+      creationTimeoutId = setTimeout(() => {
+        if (canvasEl) { // Re-check in case component unmounted before timeout
+            confettiInstance.current = confetti.create(canvasEl, { useWorker: true, resize: true });
+        }
+      }, 0);
     }
 
     // --- Introductory Animation Sequence ---
@@ -43,6 +53,7 @@ const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onDismiss, content }) => 
 
     const confettiTriggerTimer = setTimeout(() => {
         setIntroStep('confetti');
+        // The creation is deferred, but it will run before this 1.5s timer.
         if (confettiInstance.current) {
              confettiInstance.current({
                 particleCount: 100,
@@ -56,11 +67,18 @@ const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onDismiss, content }) => 
     const sloganAnimationTimer = setTimeout(() => setIntroStep('slogan-animated'), 2500);
 
     return () => {
+        if (creationTimeoutId) {
+            clearTimeout(creationTimeoutId);
+        }
         clearTimeout(startTimer);
         clearTimeout(confettiTriggerTimer);
         clearTimeout(sloganAnimationTimer);
+        if (confettiInstance.current) {
+            confettiInstance.current.reset();
+            confettiInstance.current = null;
+        }
     };
-  }, []);
+  }, [canvasEl]);
 
   const randomInRange = (min: number, max: number) => {
     return Math.random() * (max - min) + min;
@@ -88,7 +106,7 @@ const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onDismiss, content }) => 
   };
 
 
-  const descriptionParts = content.description.split('starsandfanz.com');
+  const descriptionParts = content.description.split('fanzadda.com');
   const descriptionBefore = descriptionParts[0];
   const descriptionAfter = descriptionParts.length > 1 ? descriptionParts[1] : '';
 
@@ -119,7 +137,7 @@ const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onDismiss, content }) => 
         <div className="mt-4 text-sm font-medium text-slate-800 max-w-xs sm:max-w-lg">
           <p className="whitespace-pre-wrap">
             <span>{descriptionBefore}</span>
-            <span className="font-bold animate-text-glow">starsandfanz.com</span>
+            <span className="font-bold animate-text-glow">fanzadda.com</span>
             <span>{descriptionAfter}</span>
           </p>
         </div>

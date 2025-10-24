@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Post, Reaction, FanzSay } from '../types';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { Post, Reaction, FanzSay, Person } from '../types';
 import ReactionButton from './ReactionButton';
 import CommentSection from './CommentSection';
 import VideoPlayer from './VideoPlayer';
@@ -15,16 +15,63 @@ interface ContentModalProps {
   onClose: () => void;
   onReaction: (postId: string, reactionId: string) => void;
   onFanzSay: (postId: string, fanzSayId: string) => void;
+  onRatePost: (postId: string, rating: number) => void;
   currentUserAvatar: string;
   onViewMoviePage: (movieId: string) => void;
+  onViewCelebrityPage: (celebrityId: string) => void;
 }
 
 // NOTE: This component duplicates some rendering logic from PostCard.
 // In a larger application, this could be refactored into shared sub-components.
 
-const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, onFanzSay, currentUserAvatar, onViewMoviePage }) => {
+const StarRating: React.FC<{
+    rating: { average: number; count: number };
+    onRate: (rating: number) => void;
+}> = ({ rating, onRate }) => {
+    const [userRating, setUserRating] = useState<number | null>(null);
+    const [hoverRating, setHoverRating] = useState<number | null>(null);
+
+    const handleRatingClick = (newRating: number) => {
+        if (userRating === null) { // Allow rating only once
+            setUserRating(newRating);
+            onRate(newRating);
+        }
+    };
+
+    const displayRating = hoverRating ?? userRating ?? rating.average;
+
+    return (
+        <div className="flex flex-col items-center gap-1" onMouseLeave={() => setHoverRating(null)}>
+            <div className="flex items-center">
+                {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                        key={star}
+                        onClick={() => handleRatingClick(star)}
+                        onMouseEnter={() => userRating === null && setHoverRating(star)}
+                        disabled={userRating !== null}
+                        className={`text-2xl transition-all duration-150 ${userRating === null ? 'cursor-pointer' : 'cursor-default'}`}
+                        aria-label={`Rate ${star} star`}
+                    >
+                        <StarIcon className={star <= displayRating ? 'text-amber-400' : 'text-slate-600'} />
+                    </button>
+                ))}
+            </div>
+            <p className="text-xs text-slate-400">
+                {rating.average.toFixed(1)}/5 ({rating.count.toLocaleString()} ratings)
+            </p>
+        </div>
+    );
+};
+
+const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, onFanzSay, onRatePost, currentUserAvatar, onViewMoviePage, onViewCelebrityPage }) => {
   const [isClosing, setIsClosing] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
+  const canvasRef = useCallback((node: HTMLCanvasElement) => {
+    if (node !== null) {
+      setCanvasEl(node);
+    }
+  }, []);
+  const confettiInstance = useRef<any>(null);
   const [animatingReaction, setAnimatingReaction] = useState<string | null>(null);
   const [animatingFanzSayId, setAnimatingFanzSayId] = useState<string | null>(null);
 
@@ -44,12 +91,35 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
   };
 
   useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    // Initialize confetti instance
+    if (canvasEl && !confettiInstance.current) {
+      // Defer confetti creation to ensure canvas is fully rendered and sized.
+      timeoutId = setTimeout(() => {
+        if (canvasEl) { // Re-check in case component unmounted before timeout
+          confettiInstance.current = confetti.create(canvasEl, {
+            resize: true,
+            useWorker: true,
+            disableForReducedMotion: true,
+          });
+        }
+      }, 0);
+    }
+
     // Prevent body scroll when modal is open
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = 'unset';
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      // Cleanup confetti on unmount
+      if (confettiInstance.current) {
+        confettiInstance.current.reset();
+        confettiInstance.current = null;
+      }
     };
-  }, []);
+  }, [canvasEl]);
 
   const { totalFanzSaysCount } = useMemo(() => {
     const count = post.fanzSays?.reduce((acc, fs) => acc + fs.fans.length, 0) || 0;
@@ -57,9 +127,8 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
   }, [post.fanzSays]);
 
   const triggerConfetti = () => {
-    if (canvasRef.current) {
-      const myConfetti = confetti.create(canvasRef.current, { useWorker: true });
-      myConfetti({
+    if (confettiInstance.current) {
+      confettiInstance.current({
         angle: randomInRange(55, 125),
         spread: randomInRange(50, 70),
         particleCount: randomInRange(50, 100),
@@ -92,11 +161,17 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
   };
   
    const renderPostContent = () => {
+    // General purpose image takes precedence if it's not a specific visual post type
+    if (post.imageUrl && ![PostType.Trailer, PostType.MovieDetails, PostType.CharacterIntroduction, PostType.ProjectAnnouncement, PostType.Celebrity, PostType.Image, PostType.Anniversary].includes(post.type)) {
+      return <img className="w-full h-auto object-cover rounded-lg" src={post.imageUrl} alt="Post content" />;
+    }
+
     // This function is adapted from PostCard.tsx
     switch (post.type) {
         case PostType.Trailer: return <VideoPlayer videoUrl={post.videoUrl!} duration={post.videoDuration!} />;
         case PostType.Image:
         case PostType.Anniversary:
+        case PostType.Birthday:
             return post.imageUrl ? <img className="w-full h-auto object-cover rounded-lg" src={post.imageUrl} alt="Post content" /> : null;
         case PostType.MovieDetails: {
             if (!post.movieDetails) return null;
@@ -144,19 +219,21 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
             if (!post.celebrityDetails) return null;
             const { name, imageUrl, knownFor, bio, notableWorks, birthDate } = post.celebrityDetails;
             return (
-            <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden">
-                <img src={imageUrl} alt={`${name} portrait`} className="w-full md:w-1/3 object-cover object-top" />
-                <div className="p-5 flex-1">
-                <h4 className="text-2xl font-bold text-white">{name}</h4>
-                <p className="text-teal-300 font-semibold mb-3">{knownFor}</p>
-                <p className="text-sm text-slate-300 mb-4 italic">"{bio}"</p>
-                <div className="space-y-3 text-sm mb-4"><div><strong className="text-purple-300">Born:</strong><span className="text-slate-200 ml-2">{new Date(birthDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</span></div></div>
-                <div className="flex flex-wrap gap-2">
-                    <strong className="text-purple-300 w-full text-sm">Notable Works:</strong>
-                    {notableWorks.map(work => (<span key={work} className="bg-slate-600 text-xs font-semibold text-slate-200 px-2.5 py-1 rounded-full">{work}</span>))}
+            <button onClick={() => post.celebrityDetails && onViewCelebrityPage(post.celebrityDetails.id)} className="w-full text-left transition-transform duration-300 hover:scale-[1.02]">
+                <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden">
+                    <img src={imageUrl} alt={`${name} portrait`} className="w-full md:w-1/3 object-cover object-top" />
+                    <div className="p-5 flex-1">
+                    <h4 className="text-2xl font-bold text-white">{name}</h4>
+                    <p className="text-teal-300 font-semibold mb-3">{knownFor}</p>
+                    <p className="text-sm text-slate-300 mb-4 italic line-clamp-4">"{bio}"</p>
+                    <div className="space-y-3 text-sm mb-4"><div><strong className="text-purple-300">Born:</strong><span className="text-slate-200 ml-2">{new Date(birthDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</span></div></div>
+                    <div className="flex flex-wrap gap-2">
+                        <strong className="text-purple-300 w-full text-sm">Notable Works:</strong>
+                        {notableWorks.map(work => (<span key={work} className="bg-slate-600 text-xs font-semibold text-slate-200 px-2.5 py-1 rounded-full">{work}</span>))}
+                    </div>
+                    </div>
                 </div>
-                </div>
-            </div>
+            </button>
             );
         }
         case PostType.Countdown: return post.countdownDetails ? <div className="rounded-lg overflow-hidden"><img src={post.countdownDetails.imageUrl} alt="Countdown poster" className="w-full h-auto object-cover" /></div> : null;
@@ -166,6 +243,7 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
             const { awardName, awardFor, event, year, imageUrl } = post.awardDetails;
             return (
             <div className="bg-gradient-to-br from-amber-400/20 via-slate-700/10 to-amber-400/20 p-5 rounded-lg border border-amber-400/30">
+                {post.imageUrl && <img src={post.imageUrl} alt="Award background" className="w-full h-auto object-cover rounded-lg mb-4" />}
                 <div className="flex flex-col sm:flex-row items-center text-center sm:text-left gap-5">
                 {imageUrl && <img src={imageUrl} alt={event} className="w-24 h-24 rounded-full border-4 border-amber-400" />}
                 <div className="flex-1">
@@ -179,20 +257,33 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
         }
         case PostType.ProjectAnnouncement: {
             if (!post.projectAnnouncementDetails) return null;
-            const { posterUrl, title, status, expectedRelease, crew, logline } = post.projectAnnouncementDetails;
+            const { posterUrl, title, status, expectedRelease, logline, crew, cast, relationship } = post.projectAnnouncementDetails;
+            const director = crew.find(p => p.role.toLowerCase() === 'director');
+            const castNames = cast.slice(0, 3).map(p => p.name).join(', ');
             return (
-            <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden border-2 border-yellow-400/30">
+              <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden border-2 border-yellow-400/30">
                 <div className="relative w-full md:w-1/3">
-                    <img src={posterUrl} alt={`${title} poster`} className="w-full object-cover" />
-                    <div className="absolute top-2 left-2 bg-yellow-400 text-slate-900 font-bold px-2 py-1 rounded-md text-xs uppercase tracking-wider">{status}</div>
+                  <img src={posterUrl} alt={`${title} poster`} className="w-full object-cover" />
+                  <div className="absolute top-2 left-2 bg-yellow-400 text-slate-900 font-bold px-2 py-1 rounded-md text-xs uppercase tracking-wider">{status}</div>
                 </div>
                 <div className="p-5 flex-1">
-                    <p className="text-yellow-300 font-semibold mb-1">{expectedRelease}</p>
-                    <h4 className="text-2xl font-bold text-white">{title}</h4>
-                    <p className="text-sm text-slate-300 mt-2 mb-4 italic">"{logline}"</p>
-                    <div className="space-y-3 text-sm border-t border-slate-600 pt-3"><div><strong className="text-purple-300">Crew:</strong><span className="text-slate-200 ml-2">{crew}</span></div></div>
+                  {relationship && (
+                     <button 
+                        onClick={() => onViewMoviePage(relationship.relatedMovieId)}
+                        className="text-xs font-bold text-cyan-300 bg-cyan-500/20 px-2 py-1 rounded-full mb-2 hover:bg-cyan-500/40"
+                     >
+                        {relationship.type}
+                    </button>
+                  )}
+                  <p className="text-yellow-300 font-semibold mb-1">{expectedRelease}</p>
+                  <h4 className="text-2xl font-bold text-white">{title}</h4>
+                  <p className="text-sm text-slate-300 mt-2 mb-4 italic">"{logline}"</p>
+                  <div className="space-y-3 text-sm border-t border-slate-600 pt-3">
+                    {director && (<div><strong className="text-purple-300">Director:</strong><span className="text-slate-200 ml-2">{director.name}</span></div>)}
+                    {cast.length > 0 && (<div><strong className="text-purple-300">Starring:</strong><span className="text-slate-200 ml-2">{castNames}{cast.length > 3 ? '...' : ''}</span></div>)}
+                  </div>
                 </div>
-            </div>
+              </div>
             );
         }
         case PostType.BoxOffice: {
@@ -214,6 +305,7 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
             const { triviaItems } = post.triviaDetails;
             return (
             <div className="bg-yellow-400/10 p-5 rounded-lg border border-yellow-400/30">
+                {post.imageUrl && <img src={post.imageUrl} alt="Trivia background" className="w-full h-auto object-cover rounded-lg mb-4" />}
                 <ul className="space-y-3 list-disc list-inside">
                 {triviaItems.map((item, index) => (
                     <li key={index} className="text-slate-300 italic">
@@ -224,6 +316,8 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
             </div>
             );
         }
+        case PostType.Announcement:
+             return post.imageUrl ? <img className="w-full h-auto object-cover rounded-lg" src={post.imageUrl} alt="Post content" /> : null;
         default: return null;
     }
   };
@@ -321,15 +415,20 @@ const ContentModal: React.FC<ContentModalProps> = ({ post, onClose, onReaction, 
             {/* Reactions and Comments Section */}
             <div className="p-5 border-t border-slate-700">
                 {post.reactionsEnabled !== false && post.reactions && post.reactions.length > 0 && (
-                    <div className="flex items-center justify-between pb-3 border-b-2 border-slate-700">
-                        {post.reactions.map(reaction => (
-                            <ReactionButton
-                            key={reaction.id}
-                            reaction={reaction}
-                            onClick={(e) => handleReactionClick(e, reaction.id)}
-                            isAnimating={animatingReaction === reaction.emoji}
-                            />
-                        ))}
+                     <div className="flex items-center justify-between pb-3 border-b-2 border-slate-700">
+                        <div className="flex items-center justify-start gap-1 sm:gap-2 flex-grow">
+                            {post.reactions.map(reaction => (
+                                <ReactionButton
+                                    key={reaction.id}
+                                    reaction={reaction}
+                                    onClick={(e) => handleReactionClick(e, reaction.id)}
+                                    isAnimating={animatingReaction === reaction.emoji}
+                                />
+                            ))}
+                        </div>
+                        <div className="flex-shrink-0 pl-2">
+                            {post.rating && <StarRating rating={post.rating} onRate={(rating) => onRatePost(post.id, rating)} />}
+                        </div>
                     </div>
                 )}
 

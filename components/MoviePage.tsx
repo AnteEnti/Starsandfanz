@@ -1,6 +1,3 @@
-
-
-
 import React, { useMemo } from 'react';
 import { Post, Person, MovieDetails, HypeLogEntry } from '../types';
 import { PostType } from '../PostType';
@@ -21,15 +18,17 @@ interface MoviePageProps {
   onClose: () => void;
   onReaction: (postId: string, reactionId: string) => void;
   onFanzSay: (postId: string, fanzSayId: string) => void;
+  onRatePost: (postId: string, rating: number) => void;
   currentUserAvatar: string;
   onViewMoviePage: (movieId: string) => void;
+  onViewCelebrityPage: (celebrityId: string) => void;
   onViewFullPost: (post: Post) => void;
   userHypeState: { count: number; lastReset: string };
   onHype: (movieId: string) => void;
   hypeLog: HypeLogEntry[];
 }
 
-const MoviePage: React.FC<MoviePageProps> = ({ movieId, posts, onClose, onReaction, onFanzSay, currentUserAvatar, onViewMoviePage, onViewFullPost, userHypeState, onHype, hypeLog }) => {
+const MoviePage: React.FC<MoviePageProps> = ({ movieId, posts, onClose, onReaction, onFanzSay, onRatePost, currentUserAvatar, onViewMoviePage, onViewCelebrityPage, onViewFullPost, userHypeState, onHype, hypeLog }) => {
   const movieData = useMemo(() => {
     const moviePost = posts.find(p => p.type === PostType.MovieDetails && p.movieDetails?.id === movieId);
     if (!moviePost || !moviePost.movieDetails) return null;
@@ -75,6 +74,10 @@ const MoviePage: React.FC<MoviePageProps> = ({ movieId, posts, onClose, onReacti
     };
   }, [movieId, posts]);
 
+  const totalHypesForMovie = useMemo(() => {
+    return hypeLog.filter(h => h.movieId === movieId).length;
+  }, [hypeLog, movieId]);
+
   if (!movieData || !movieData.moviePost) {
     return (
       <div className="fixed inset-0 bg-slate-900 z-40 flex items-center justify-center">
@@ -111,6 +114,7 @@ const MoviePage: React.FC<MoviePageProps> = ({ movieId, posts, onClose, onReacti
           trailerUrl={trailerUrl}
           movieId={movieId}
           hypeCount={userHypeState.count}
+          totalHypes={totalHypesForMovie}
           onHype={() => onHype(movieId)}
         />
         
@@ -124,8 +128,8 @@ const MoviePage: React.FC<MoviePageProps> = ({ movieId, posts, onClose, onReacti
             <h2 className="text-3xl font-bold text-white mb-6 border-b-2 border-purple-500/30 pb-2">Details</h2>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-10">
-                <CastCrew title="Cast" people={fullCast} />
-                <CastCrew title="Crew" people={crew} />
+                <CastCrew title="Cast" people={fullCast} onViewCelebrityPage={onViewCelebrityPage} />
+                <CastCrew title="Crew" people={crew} onViewCelebrityPage={onViewCelebrityPage} />
               </div>
               <div className="space-y-6">
                 <MovieDetailsBox details={movieDetails} />
@@ -161,9 +165,11 @@ const MoviePage: React.FC<MoviePageProps> = ({ movieId, posts, onClose, onReacti
                 posts={relatedPosts}
                 onReaction={onReaction}
                 onFanzSay={onFanzSay}
+                onRatePost={onRatePost}
                 currentUserAvatar={currentUserAvatar}
                 onViewFullPost={onViewFullPost}
                 onViewMoviePage={onViewMoviePage}
+                onViewCelebrityPage={onViewCelebrityPage}
             />
           )}
 

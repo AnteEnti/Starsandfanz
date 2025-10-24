@@ -1,3 +1,4 @@
+
 import React, { useRef } from 'react';
 import { Suggestion } from '../types';
 import SuggestionCard from './SuggestionCard';
@@ -6,9 +7,10 @@ interface SuggestionCarouselProps {
   suggestions: Suggestion[];
   onToggleFan: (suggestionId: string) => void;
   onStartUnfan: (suggestionId: string, suggestionName: string) => void;
+  onViewCelebrityPage: (celebrityId: string) => void;
 }
 
-const SuggestionCarousel: React.FC<SuggestionCarouselProps> = ({ suggestions, onToggleFan, onStartUnfan }) => {
+const SuggestionCarousel: React.FC<SuggestionCarouselProps> = ({ suggestions, onToggleFan, onStartUnfan, onViewCelebrityPage }) => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const scroll = (direction: 'left' | 'right') => {
@@ -33,6 +35,7 @@ const SuggestionCarousel: React.FC<SuggestionCarouselProps> = ({ suggestions, on
               onToggleFan={onToggleFan}
               onStartUnfan={onStartUnfan}
               disappearsOnFan={true}
+              onViewCelebrityPage={onViewCelebrityPage}
             />
           ))}
         </div>

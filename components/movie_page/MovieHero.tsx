@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { StarIcon } from '../icons';
 import TrailerModal from './TrailerModal';
@@ -13,10 +11,11 @@ interface MovieHeroProps {
   trailerUrl?: string;
   movieId: string;
   hypeCount: number;
+  totalHypes: number;
   onHype: () => void;
 }
 
-const MovieHero: React.FC<MovieHeroProps> = ({ title, posterUrl, heroImageUrl, rating, genres, trailerUrl, movieId, hypeCount, onHype }) => {
+const MovieHero: React.FC<MovieHeroProps> = ({ title, posterUrl, heroImageUrl, rating, genres, trailerUrl, movieId, hypeCount, totalHypes, onHype }) => {
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
 
   const getYouTubeVideoId = (url: string): string | null => {
@@ -78,18 +77,28 @@ const MovieHero: React.FC<MovieHeroProps> = ({ title, posterUrl, heroImageUrl, r
               )}
               <div className="flex items-center gap-2">
                 <button className="bg-slate-700/50 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-full transition duration-300 flex items-center space-x-2 backdrop-blur-sm">
-                  <span className="material-symbols-outlined text-rose-400">favorite</span>
+                  <span className="material-symbols-outlined text-rose-400">favorite_border</span>
                   <span>Favorite movie</span>
                 </button>
-                <button 
-                  onClick={onHype}
-                  disabled={hypeCount === 0}
-                  className="bg-yellow-400/20 hover:bg-yellow-400/40 text-white font-bold py-3 px-6 rounded-full transition duration-300 flex items-center space-x-2 backdrop-blur-sm disabled:cursor-not-allowed disabled:bg-slate-700 disabled:opacity-50 group"
-                  aria-label={`Hype this movie. ${hypeCount} hypes left this week.`}
-                >
-                  <span className="material-symbols-outlined text-yellow-300 group-disabled:text-slate-400 animate-glitter">auto_awesome</span>
-                  <span>Hype ({hypeCount})</span>
-                </button>
+                <div className="relative group">
+                  <button 
+                    onClick={onHype}
+                    disabled={hypeCount === 0}
+                    className="bg-yellow-400/20 hover:bg-yellow-400/40 text-white font-bold py-3 px-6 rounded-full transition duration-300 flex items-center space-x-2 backdrop-blur-sm disabled:cursor-not-allowed disabled:bg-slate-700 disabled:opacity-50"
+                    aria-label={`Hype this movie. ${hypeCount} hypes left this week.`}
+                  >
+                    <span className="material-symbols-outlined text-yellow-300 group-disabled:text-slate-400 animate-glitter">auto_awesome</span>
+                    <span>Hype ({totalHypes})</span>
+                  </button>
+                  {hypeCount === 0 && (
+                    <div 
+                      className="absolute bottom-full mb-2 w-max px-3 py-1.5 bg-slate-950 text-white text-xs font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                      role="tooltip"
+                    >
+                      You have reached your weekly hype limit.
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

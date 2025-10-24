@@ -1,15 +1,15 @@
-import React from 'react';
-import { Post } from '../../types';
+
+import React, { useState, useMemo } from 'react';
+import { Post, PostType } from '../../types';
 import CreateEditPostForm from './CreateEditPostForm';
 
 interface PostManagementViewProps {
   posts: Post[];
   onDeletePost: (postId: string) => void;
-  // New props to control the view from parent
   view: 'list' | 'form';
   postToEdit: Post | null;
   onEdit: (post: Post) => void;
-  onCreateNew: () => void;
+  onCreateNew: (type?: PostType) => void;
   onSave: (postData: Omit<Post, 'id' | 'author' | 'avatar' | 'timestamp'>) => void;
   onCancel: () => void;
   allMovies: { id: string, title: string }[];
@@ -28,10 +28,20 @@ const PostManagementView: React.FC<PostManagementViewProps> = ({
   allMovies,
   allCelebrities
 }) => {
+  const [activeTab, setActiveTab] = useState<PostType | 'All'>('All');
 
   const getTotalReactions = (post: Post) => {
     return post.reactions?.reduce((sum, reaction) => sum + reaction.count, 0) || 0;
   };
+  
+  const filteredPosts = useMemo(() => {
+    if (activeTab === 'All') {
+      return posts;
+    }
+    return posts.filter(post => post.type === activeTab);
+  }, [posts, activeTab]);
+  
+  const TABS: (PostType | 'All')[] = ['All', ...Object.values(PostType)];
 
   if (view === 'form') {
     return (
@@ -47,15 +57,44 @@ const PostManagementView: React.FC<PostManagementViewProps> = ({
 
   return (
     <div className="p-6 space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center gap-4">
         <h2 className="text-2xl font-bold text-white">Manage Posts</h2>
-        <button
-          onClick={onCreateNew}
-          className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 flex items-center space-x-2"
-        >
-          <span className="material-symbols-outlined text-base">add</span>
-          <span>Create New Post</span>
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {activeTab !== 'All' && (
+            <button
+              onClick={() => onCreateNew(activeTab)}
+              className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 flex items-center space-x-2 animate-fade-in-down"
+            >
+              <span className="material-symbols-outlined text-base">add</span>
+              <span className="hidden sm:inline">New {activeTab}</span>
+            </button>
+          )}
+          <button
+            onClick={() => onCreateNew()}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 flex items-center space-x-2"
+          >
+            <span className="material-symbols-outlined text-base">add_circle</span>
+            <span className="hidden sm:inline">Create Post...</span>
+          </button>
+        </div>
+      </div>
+      
+      {/* Tabs for filtering */}
+      <div className="border-b border-slate-700">
+        <nav className="flex space-x-2 overflow-x-auto scrollbar-hide -mb-px">
+           {TABS.map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`${activeTab === tab 
+                ? 'border-purple-500 text-purple-300' 
+                : 'border-transparent text-slate-400 hover:text-white hover:border-slate-500'
+              } whitespace-nowrap py-3 px-3 border-b-2 font-medium text-sm transition-colors`}
+            >
+              {tab}
+            </button>
+          ))}
+        </nav>
       </div>
 
       <div className="overflow-x-auto">
@@ -70,7 +109,7 @@ const PostManagementView: React.FC<PostManagementViewProps> = ({
             </tr>
           </thead>
           <tbody>
-            {posts.map(post => (
+            {filteredPosts.length > 0 ? filteredPosts.map(post => (
               <tr key={post.id} className="border-b border-slate-700 hover:bg-slate-700/30">
                 <td className="px-6 py-4 font-medium text-white max-w-sm truncate">
                   {post.content || post.eventDetails?.title || 'Video Post'}
@@ -85,7 +124,24 @@ const PostManagementView: React.FC<PostManagementViewProps> = ({
                   <button onClick={() => onDeletePost(post.id)} className="font-medium text-rose-500 hover:underline">Delete</button>
                 </td>
               </tr>
-            ))}
+            )) : (
+              <tr>
+                <td colSpan={5} className="text-center py-10 text-slate-400">
+                  <div className="flex flex-col items-center gap-4">
+                    <span>No posts found for the "{activeTab}" type.</span>
+                    {activeTab !== 'All' && (
+                       <button
+                          onClick={() => onCreateNew(activeTab)}
+                          className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 flex items-center space-x-2"
+                        >
+                          <span className="material-symbols-outlined text-base">add</span>
+                          <span>Create New {activeTab} Post</span>
+                        </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

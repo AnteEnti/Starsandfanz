@@ -1,5 +1,5 @@
-import React, { useRef, useState, useMemo, useLayoutEffect, useEffect } from 'react';
-import { Post, Reaction, FanzSay } from '../types';
+import React, { useRef, useState, useMemo, useEffect, useCallback } from 'react';
+import { Post, Reaction, FanzSay, Person } from '../types';
 import ReactionButton from './ReactionButton';
 import CommentSection from './CommentSection';
 import VideoPlayer from './VideoPlayer';
@@ -14,9 +14,11 @@ interface PostCardProps {
   post: Post;
   onReaction: (postId: string, reactionId: string) => void;
   onFanzSay: (postId: string, fanzSayId: string) => void;
+  onRatePost: (postId: string, rating: number) => void;
   currentUserAvatar: string;
   onViewFullPost: (post: Post) => void;
   onViewMoviePage: (movieId: string) => void;
+  onViewCelebrityPage: (celebrityId: string) => void;
 }
 
 const CONTENT_TRUNCATE_LENGTH = 300;
@@ -45,10 +47,54 @@ const AnimatedCommentTeaser: React.FC<{topComments: FanzSay[], totalCount: numbe
     </div>
 );
 
-const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, currentUserAvatar, onViewFullPost, onViewMoviePage }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+const StarRating: React.FC<{
+    rating: { average: number; count: number };
+    onRate: (rating: number) => void;
+}> = ({ rating, onRate }) => {
+    const [userRating, setUserRating] = useState<number | null>(null);
+    const [hoverRating, setHoverRating] = useState<number | null>(null);
+
+    const handleRatingClick = (newRating: number) => {
+        if (userRating === null) { // Allow rating only once
+            setUserRating(newRating);
+            onRate(newRating);
+        }
+    };
+
+    const displayRating = hoverRating ?? userRating ?? rating.average;
+
+    return (
+        <div className="flex flex-col items-center gap-1" onMouseLeave={() => setHoverRating(null)}>
+            <div className="flex items-center">
+                {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                        key={star}
+                        onClick={() => handleRatingClick(star)}
+                        onMouseEnter={() => userRating === null && setHoverRating(star)}
+                        disabled={userRating !== null}
+                        className={`text-2xl transition-all duration-150 ${userRating === null ? 'cursor-pointer' : 'cursor-default'}`}
+                        aria-label={`Rate ${star} star`}
+                    >
+                        <StarIcon className={star <= displayRating ? 'text-amber-400' : 'text-slate-600'} />
+                    </button>
+                ))}
+            </div>
+            <p className="text-xs text-slate-400">
+                {rating.average.toFixed(1)}/5 ({rating.count.toLocaleString()} ratings)
+            </p>
+        </div>
+    );
+};
+
+
+const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, onRatePost, currentUserAvatar, onViewFullPost, onViewMoviePage, onViewCelebrityPage }) => {
+  const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
+  const canvasRef = useCallback((node: HTMLCanvasElement) => {
+    if (node !== null) {
+      setCanvasEl(node);
+    }
+  }, []);
   const contentRef = useRef<HTMLDivElement>(null);
-  const [isOverflowing, setIsOverflowing] = useState(false);
   const [animatingReaction, setAnimatingReaction] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [animatingFanzSayId, setAnimatingFanzSayId] = useState<string | null>(null);
@@ -57,14 +103,31 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
   const confettiInstance = useRef<any>(null);
 
   useEffect(() => {
-    if (canvasRef.current && !confettiInstance.current) {
-      confettiInstance.current = confetti.create(canvasRef.current, { 
-          resize: true,
-          useWorker: true,
-          disableForReducedMotion: true,
-      });
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    if (canvasEl && !confettiInstance.current) {
+      // Defer confetti creation to ensure canvas is fully rendered and sized,
+      // preventing getBoundingClientRect errors on a not-yet-laid-out element.
+      timeoutId = setTimeout(() => {
+        if (canvasEl) { // Re-check in case component unmounted before timeout
+          confettiInstance.current = confetti.create(canvasEl, {
+            resize: true,
+            useWorker: true,
+            disableForReducedMotion: true,
+          });
+        }
+      }, 0);
     }
-  }, []);
+    
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      if (confettiInstance.current) {
+        confettiInstance.current.reset();
+        confettiInstance.current = null;
+      }
+    };
+  }, [canvasEl]);
 
   const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
@@ -111,32 +174,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
     }
   };
   
-  useLayoutEffect(() => {
-    const checkOverflow = () => {
-        const element = contentRef.current;
-        if (element) {
-            const hasOverflow = element.scrollHeight > element.clientHeight;
-            if (hasOverflow !== isOverflowing) {
-               setIsOverflowing(hasOverflow);
-            }
-        }
-    };
-    // Debounced check for resize and a slight delay for initial render
-    let timeoutId: number;
-    const debouncedCheck = () => {
-      clearTimeout(timeoutId);
-      timeoutId = window.setTimeout(checkOverflow, 50);
-    }
-    
-    debouncedCheck(); // Initial check
-    window.addEventListener('resize', debouncedCheck);
-
-    return () => {
-        clearTimeout(timeoutId);
-        window.removeEventListener('resize', debouncedCheck);
-    };
-  }, [post.id, isExpanded, isOverflowing]); // Rerun on key changes
-
   const { totalFanzSaysCount, topComments } = useMemo(() => {
     const count = post.fanzSays?.reduce((acc, fs) => acc + fs.fans.length, 0) || 0;
     const top = post.fanzSays?.filter(fs => fs.fans.length > 0).sort((a, b) => b.fans.length - a.fans.length).slice(0, 2) || [];
@@ -175,6 +212,11 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
   const isLongContent = post.content.length > CONTENT_TRUNCATE_LENGTH;
 
   const renderPostContent = () => {
+    // General purpose image takes precedence if it's not a specific visual post type
+    if (post.imageUrl && ![PostType.Trailer, PostType.MovieDetails, PostType.CharacterIntroduction, PostType.ProjectAnnouncement, PostType.Celebrity, PostType.Image, PostType.Anniversary].includes(post.type)) {
+      return <img className="w-full h-auto object-cover rounded-lg" src={post.imageUrl} alt="Post content" />;
+    }
+
     switch (post.type) {
       case PostType.Trailer:
         return (
@@ -185,6 +227,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
         );
       case PostType.Image:
       case PostType.Anniversary:
+      case PostType.Birthday:
         return post.imageUrl ? <img className="w-full h-auto object-cover rounded-lg" src={post.imageUrl} alt="Post content" /> : null;
       
       case PostType.MovieDetails: {
@@ -230,61 +273,69 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
       
       case PostType.CharacterIntroduction: {
         if (!post.characterDetails) return null;
-        const { name, imageUrl, role, bio, keyTraits, firstAppearance } = post.characterDetails;
+        const { name, imageUrl, role, bio, keyTraits, firstAppearance, linkedCelebrityId } = post.characterDetails;
+        const Wrapper = linkedCelebrityId ? 'button' as const : 'div' as const;
         return (
-          <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden">
-            <img src={imageUrl} alt={`${name} portrait`} className="w-full md:w-1/3 object-cover object-top" />
-            <div className="p-5 flex-1">
-              <h4 className="text-2xl font-bold text-white">{name}</h4>
-              <p className="text-purple-300 font-semibold mb-3">{role}</p>
-              <p className="text-sm text-slate-300 mb-4 italic">"{bio}"</p>
-              
-              <div className="space-y-3 text-sm mb-4">
-                <div>
-                  <strong className="text-purple-300">First Appearance:</strong>
-                  <span className="text-slate-200 ml-2">{firstAppearance}</span>
+          <Wrapper 
+            onClick={() => linkedCelebrityId && onViewCelebrityPage(linkedCelebrityId)} 
+            className={`w-full text-left ${linkedCelebrityId ? 'transition-transform duration-300 hover:scale-[1.02]' : ''}`}
+          >
+            <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden">
+              <img src={imageUrl} alt={`${name} portrait`} className="w-full md:w-1/3 object-cover object-top" />
+              <div className="p-5 flex-1">
+                <h4 className="text-2xl font-bold text-white">{name}</h4>
+                <p className="text-purple-300 font-semibold mb-3">{role}</p>
+                <p className="text-sm text-slate-300 mb-4 italic">"{bio}"</p>
+                
+                <div className="space-y-3 text-sm mb-4">
+                  <div>
+                    <strong className="text-purple-300">First Appearance:</strong>
+                    <span className="text-slate-200 ml-2">{firstAppearance}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {keyTraits.map(trait => (
+                    <span key={trait} className="bg-slate-600 text-xs font-semibold text-slate-200 px-2.5 py-1 rounded-full">
+                      {trait}
+                    </span>
+                  ))}
                 </div>
               </div>
-
-              <div className="flex flex-wrap gap-2">
-                {keyTraits.map(trait => (
-                  <span key={trait} className="bg-slate-600 text-xs font-semibold text-slate-200 px-2.5 py-1 rounded-full">
-                    {trait}
-                  </span>
-                ))}
-              </div>
             </div>
-          </div>
+          </Wrapper>
         );
       }
        case PostType.Celebrity: {
         if (!post.celebrityDetails) return null;
-        const { name, imageUrl, knownFor, bio, notableWorks, birthDate } = post.celebrityDetails;
+        const { id, name, imageUrl, knownFor, bio, notableWorks, birthDate } = post.celebrityDetails;
         return (
-          <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden">
-            <img src={imageUrl} alt={`${name} portrait`} className="w-full md:w-1/3 object-cover object-top" />
-            <div className="p-5 flex-1">
-              <h4 className="text-2xl font-bold text-white">{name}</h4>
-              <p className="text-teal-300 font-semibold mb-3">{knownFor}</p>
-              <p className="text-sm text-slate-300 mb-4 italic">"{bio}"</p>
-              
-              <div className="space-y-3 text-sm mb-4">
-                <div>
-                  <strong className="text-purple-300">Born:</strong>
-                  <span className="text-slate-200 ml-2">{new Date(birthDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</span>
+          <button onClick={() => onViewCelebrityPage(id)} className="w-full text-left transition-transform duration-300 hover:scale-[1.02]">
+            <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden">
+              <img src={imageUrl} alt={`${name} portrait`} className="w-full md:w-1/3 object-cover object-top" />
+              <div className="p-5 flex-1">
+                <h4 className="text-2xl font-bold text-white">{name}</h4>
+                <p className="text-teal-300 font-semibold mb-3">{knownFor}</p>
+                <p className="text-sm text-slate-300 mb-4 italic line-clamp-4">"{bio}"</p>
+                
+                <div className="space-y-3 text-sm mb-4">
+                  <div>
+                    <strong className="text-purple-300">Born:</strong>
+                    <span className="text-slate-200 ml-2">{new Date(birthDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <strong className="text-purple-300 w-full text-sm">Notable Works:</strong>
+                  {notableWorks.map(work => (
+                    <span key={work} className="bg-slate-600 text-xs font-semibold text-slate-200 px-2.5 py-1 rounded-full">
+                      {work}
+                    </span>
+                  ))}
                 </div>
               </div>
-
-              <div className="flex flex-wrap gap-2">
-                <strong className="text-purple-300 w-full text-sm">Notable Works:</strong>
-                {notableWorks.map(work => (
-                  <span key={work} className="bg-slate-600 text-xs font-semibold text-slate-200 px-2.5 py-1 rounded-full">
-                    {work}
-                  </span>
-                ))}
-              </div>
             </div>
-          </div>
+          </button>
         );
       }
       case PostType.Countdown: {
@@ -306,6 +357,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
         const { awardName, awardFor, event, year, imageUrl } = post.awardDetails;
         return (
           <div className="bg-gradient-to-br from-amber-400/20 via-slate-700/10 to-amber-400/20 p-5 rounded-lg border border-amber-400/30">
+             {post.imageUrl && <img src={post.imageUrl} alt="Award background" className="w-full h-auto object-cover rounded-lg mb-4" />}
             <div className="flex flex-col sm:flex-row items-center text-center sm:text-left gap-5">
               {imageUrl && <img src={imageUrl} alt={event} className="w-24 h-24 rounded-full border-4 border-amber-400" />}
               <div className="flex-1">
@@ -319,7 +371,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
       }
       case PostType.ProjectAnnouncement: {
         if (!post.projectAnnouncementDetails) return null;
-        const { posterUrl, title, status, expectedRelease, crew, logline } = post.projectAnnouncementDetails;
+        const { posterUrl, title, status, expectedRelease, logline, crew, cast, relationship } = post.projectAnnouncementDetails;
+        const director = crew.find(p => p.role.toLowerCase() === 'director');
+        const castNames = cast.slice(0, 3).map(p => p.name).join(', ');
+
         return (
           <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden border-2 border-yellow-400/30">
             <div className="relative w-full md:w-1/3">
@@ -329,15 +384,31 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
               </div>
             </div>
             <div className="p-5 flex-1">
+              {relationship && (
+                 <button 
+                    onClick={() => onViewMoviePage(relationship.relatedMovieId)}
+                    className="text-xs font-bold text-cyan-300 bg-cyan-500/20 px-2 py-1 rounded-full mb-2 hover:bg-cyan-500/40"
+                 >
+                    {relationship.type}
+                </button>
+              )}
               <p className="text-yellow-300 font-semibold mb-1">{expectedRelease}</p>
               <h4 className="text-2xl font-bold text-white">{title}</h4>
               <p className="text-sm text-slate-300 mt-2 mb-4 italic">"{logline}"</p>
               
               <div className="space-y-3 text-sm border-t border-slate-600 pt-3">
-                <div>
-                  <strong className="text-purple-300">Crew:</strong>
-                  <span className="text-slate-200 ml-2">{crew}</span>
-                </div>
+                {director && (
+                  <div>
+                    <strong className="text-purple-300">Director:</strong>
+                    <span className="text-slate-200 ml-2">{director.name}</span>
+                  </div>
+                )}
+                {cast.length > 0 && (
+                  <div>
+                    <strong className="text-purple-300">Starring:</strong>
+                    <span className="text-slate-200 ml-2">{castNames}{cast.length > 3 ? '...' : ''}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -362,6 +433,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
         const { triviaItems } = post.triviaDetails;
         return (
           <div className="bg-yellow-400/10 p-5 rounded-lg border border-yellow-400/30">
+            {post.imageUrl && <img src={post.imageUrl} alt="Trivia background" className="w-full h-auto object-cover rounded-lg mb-4" />}
             <ul className="space-y-3 list-disc list-inside">
               {triviaItems.map((item, index) => (
                 <li key={index} className="text-slate-300 italic">
@@ -372,6 +444,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
           </div>
         );
       }
+      case PostType.Announcement:
+         return post.imageUrl ? <img className="w-full h-auto object-cover rounded-lg" src={post.imageUrl} alt="Post content" /> : null;
       default:
         return null;
     }
@@ -379,6 +453,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
 
   const renderEventHeader = () => {
     if (!post.eventDetails) return null;
+    
+    // Logic to make the header clickable if it's linked to a single celebrity
+    const hasSingleCelebLink = post.linkedCelebrityIds?.length === 1;
+    const isMainContentClickable = [PostType.Celebrity, PostType.CharacterIntroduction].includes(post.type);
+    const isClickable = hasSingleCelebLink && !isMainContentClickable;
+    
     let icon;
     let titleColor = 'text-purple-300';
     let rightContent = null;
@@ -439,21 +519,34 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
         default:
             return null;
     }
-
-    return (
-        <div className="flex items-center justify-between bg-slate-700/50 p-3 rounded-lg">
-            <div className="flex items-center space-x-3">
-                {icon}
-                <div>
-                    <h3 className={`font-bold text-lg ${titleColor}`}>{post.eventDetails.title}</h3>
-                    {post.eventDetails.subtitle && (
-                        <p className="text-sm text-slate-400">{post.eventDetails.subtitle}</p>
-                    )}
-                </div>
-            </div>
-            {rightContent}
-        </div>
+    
+    const eventHeaderContent = (
+      <div className="flex items-center justify-between bg-slate-700/50 p-3 rounded-lg">
+          <div className="flex items-center space-x-3">
+              {icon}
+              <div>
+                  <h3 className={`font-bold text-lg ${titleColor}`}>{post.eventDetails.title}</h3>
+                  {post.eventDetails.subtitle && (
+                      <p className="text-sm text-slate-400">{post.eventDetails.subtitle}</p>
+                  )}
+              </div>
+          </div>
+          {rightContent}
+      </div>
     );
+    
+    if (isClickable) {
+        return (
+            <button 
+                onClick={() => onViewCelebrityPage(post.linkedCelebrityIds![0])}
+                className="w-full text-left transition-transform duration-300 hover:scale-[1.01] focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-800 rounded-lg"
+            >
+                {eventHeaderContent}
+            </button>
+        );
+    }
+
+    return eventHeaderContent;
   };
   
   const hasEventHeader = [
@@ -497,21 +590,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
             )}
           </p>
           {renderPostContent()}
-
-          {isOverflowing && (
-             <div 
-              className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-slate-800 to-transparent flex items-end justify-center pb-4 pointer-events-none"
-              aria-hidden="true"
-            >
-              <button 
-                onClick={() => onViewFullPost(post)}
-                className="pointer-events-auto bg-slate-900/80 backdrop-blur-sm text-white font-semibold py-2 px-4 rounded-full flex items-center gap-2 transition-transform hover:scale-105 shadow-lg"
-              >
-                <span className="material-symbols-outlined text-base">fullscreen</span>
-                View Full Post
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Static Countdown Footer (special case) */}
@@ -533,15 +611,20 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
         {/* Static Main Footer */}
         <div className="p-5 flex-shrink-0 border-t border-slate-700 bg-slate-800">
           {post.reactionsEnabled !== false && post.reactions && post.reactions.length > 0 && (
-            <div className="flex items-center justify-between pb-3 border-b-2 border-slate-700">
-                {post.reactions.map(reaction => (
-                  <ReactionButton
-                    key={reaction.id}
-                    reaction={reaction}
-                    onClick={(e) => handleReactionClick(e, reaction.id)}
-                    isAnimating={animatingReaction === reaction.emoji}
-                  />
-                ))}
+             <div className="flex items-center justify-between pb-3 border-b-2 border-slate-700">
+                <div className="flex items-center justify-start gap-1 sm:gap-2 flex-grow">
+                    {post.reactions.map(reaction => (
+                        <ReactionButton
+                            key={reaction.id}
+                            reaction={reaction}
+                            onClick={(e) => handleReactionClick(e, reaction.id)}
+                            isAnimating={animatingReaction === reaction.emoji}
+                        />
+                    ))}
+                </div>
+                <div className="flex-shrink-0 pl-2">
+                   {post.rating && <StarRating rating={post.rating} onRate={(rating) => onRatePost(post.id, rating)} />}
+                </div>
             </div>
           )}
 
@@ -591,6 +674,15 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
               </div>
             )
           )}
+          <div className="mt-4">
+            <button 
+              onClick={() => onViewFullPost(post)}
+              className="w-full text-center bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-2 px-4 rounded-full flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-lg shadow-amber-500/30"
+            >
+              <span className="material-symbols-outlined text-base">read_more</span>
+              Read More
+            </button>
+          </div>
         </div>
       </div>
     </div>

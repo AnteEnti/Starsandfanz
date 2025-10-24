@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { Post } from '../../types';
 import PostCard from '../PostCard';
@@ -8,9 +6,11 @@ interface RelatedBuzzProps {
   posts: Post[];
   onReaction: (postId: string, reactionId: string) => void;
   onFanzSay: (postId: string, fanzSayId: string) => void;
+  onRatePost: (postId: string, rating: number) => void;
   currentUserAvatar: string;
   onViewFullPost: (post: Post) => void;
   onViewMoviePage: (movieId: string) => void;
+  onViewCelebrityPage: (celebrityId: string) => void;
 }
 
 const RelatedBuzz: React.FC<RelatedBuzzProps> = ({ posts, ...postCardProps }) => {

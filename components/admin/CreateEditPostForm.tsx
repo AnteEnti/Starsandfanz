@@ -1,5 +1,5 @@
 import React, { useState, useCallback, ChangeEvent, FormEvent, useEffect } from 'react';
-import { Post, PostType, FilmographyItem, FanzSay, Reaction } from '../../types';
+import { Post, PostType, FilmographyItem, FanzSay, Reaction, ProjectStatus, ProjectRelationshipType, Person } from '../../types';
 import SearchableLinkSelector from './SearchableLinkSelector';
 
 interface CreateEditPostFormProps {
@@ -48,7 +48,9 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
       let initialData: any = { 
         content: '', 
         linkedMovieIds: [], 
-        linkedCelebrityIds: [], 
+        linkedCelebrityIds: [],
+        metaDescription: '',
+        seoKeywords: [],
         fanzSaysEnabled: true,
         reactionsEnabled: true,
         reactions: [
@@ -82,6 +84,7 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
         if (postData.characterDetails?.keyTraits) initialData.characterDetails.keyTraits = postData.characterDetails.keyTraits.join(', ');
         if (postData.celebrityDetails?.notableWorks) initialData.celebrityDetails.notableWorks = postData.celebrityDetails.notableWorks.join(', ');
         if (postData.triviaDetails?.triviaItems) initialData.triviaDetails.triviaItems = postData.triviaDetails.triviaItems.join('\n');
+        if (postData.seoKeywords) initialData.seoKeywords = postData.seoKeywords.join(', ');
         
         return initialData;
     }
@@ -93,13 +96,13 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
             initialData = { ...initialData, imageUrl: '', eventDetails: { title: '', subtitle: '' } };
             break;
         case PostType.ProjectAnnouncement:
-            initialData = { ...initialData, eventDetails: { title: '' }, projectAnnouncementDetails: { title: '', posterUrl: '', status: 'In Production', expectedRelease: '', crew: '', logline: '' } };
+            initialData = { ...initialData, eventDetails: { title: '' }, projectAnnouncementDetails: { title: '', posterUrl: '', status: ProjectStatus.Announced, expectedRelease: '', crew: [], cast: [], logline: '' } };
             break;
         case PostType.Trailer:
             initialData = { ...initialData, videoUrl: '', videoDuration: 0 };
             break;
         case PostType.Birthday:
-            initialData = { ...initialData, eventDetails: { title: '' } };
+            initialData = { ...initialData, eventDetails: { title: '' }, imageUrl: '' };
             break;
         case PostType.MovieDetails:
             initialData = { ...initialData, eventDetails: { title: '' }, movieDetails: { id: `movie-${Date.now()}`, title: '', posterUrl: '', rating: 0, director: '', cast: '', genres: '', synopsis: '' } };
@@ -123,9 +126,10 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
             initialData = { ...initialData, eventDetails: { title: '' }, boxOfficeDetails: { title: '', grossRevenue: 0, ranking: 1, region: 'Domestic', sourceUrl: '' } };
             break;
         case PostType.Trivia:
-            initialData = { ...initialData, eventDetails: { title: '' }, triviaDetails: { title: '', triviaItems: '' } };
+            initialData = { ...initialData, eventDetails: { title: '' }, triviaDetails: { title: '', triviaItems: '' }, imageUrl: '' };
             break;
         default: // Announcement
+            initialData = { ...initialData, imageUrl: '' };
             break;
     }
     return initialData;
@@ -193,6 +197,43 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
     setFormData({ ...formData, filmographyDetails: updatedFilmography });
   };
   
+  const handlePeopleListChange = (listName: 'cast' | 'crew', index: number, field: keyof Omit<Person, 'linkedCelebrityId'>, value: string) => {
+    const list = formData.projectAnnouncementDetails[listName];
+    const updatedList = [...list];
+    updatedList[index] = { ...updatedList[index], [field]: value };
+    setFormData({
+      ...formData,
+      projectAnnouncementDetails: {
+        ...formData.projectAnnouncementDetails,
+        [listName]: updatedList,
+      },
+    });
+  };
+
+  const addPeopleListItem = (listName: 'cast' | 'crew') => {
+    const list = formData.projectAnnouncementDetails[listName] || [];
+    const newItem: Person = { name: '', role: '', imageUrl: '' };
+    setFormData({
+      ...formData,
+      projectAnnouncementDetails: {
+        ...formData.projectAnnouncementDetails,
+        [listName]: [...list, newItem],
+      },
+    });
+  };
+
+  const removePeopleListItem = (listName: 'cast' | 'crew', index: number) => {
+    const list = formData.projectAnnouncementDetails[listName];
+    const updatedList = list.filter((_: any, i: number) => i !== index);
+    setFormData({
+      ...formData,
+      projectAnnouncementDetails: {
+        ...formData.projectAnnouncementDetails,
+        [listName]: updatedList,
+      },
+    });
+  };
+
   const handleFanzSayTextChange = (index: number, newText: string) => {
     const updatedFanzSays = [...(formData.fanzSays || [])];
     updatedFanzSays[index] = { ...updatedFanzSays[index], text: newText };
@@ -234,6 +275,19 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
     const key = type === 'movie' ? 'linkedMovieIds' : 'linkedCelebrityIds';
     setFormData((prev: any) => ({ ...prev, [key]: newIds }));
   };
+  
+  const handleRelationshipChange = (field: 'type' | 'relatedMovieId', value: string) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      projectAnnouncementDetails: {
+        ...prev.projectAnnouncementDetails,
+        relationship: {
+          ...(prev.projectAnnouncementDetails.relationship || {}),
+          [field]: value,
+        },
+      },
+    }));
+  };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -246,6 +300,7 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
       fanzSays: formData.fanzSays,
       reactionsEnabled: formData.reactionsEnabled,
       reactions: formData.reactions,
+      metaDescription: formData.metaDescription,
     };
 
     // Copy details from form that don't need processing
@@ -285,6 +340,11 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
             triviaItems: formData.triviaDetails.triviaItems.split('\n').filter((s: string) => s.trim() !== '')
         };
     }
+    if (formData.seoKeywords && typeof formData.seoKeywords === 'string') {
+        postData.seoKeywords = formData.seoKeywords.split(',').map((s:string) => s.trim()).filter(Boolean);
+    } else {
+        postData.seoKeywords = [];
+    }
     
     onSave(postData);
   };
@@ -300,14 +360,58 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
         </>;
       case PostType.ProjectAnnouncement:
         const pa = formData.projectAnnouncementDetails || {};
+        const PeopleListEditor: React.FC<{ title: string; listName: 'cast' | 'crew' }> = ({ title, listName }) => (
+          <div>
+              <h3 className="text-lg font-semibold text-purple-300 mb-2">{title}</h3>
+              {(pa[listName] || []).map((person: Person, index: number) => (
+                  <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end bg-slate-700/50 p-3 rounded-lg mb-3">
+                      <FormInput label="Name" name={`pa.${listName}.${index}.name`} value={person.name} onChange={(e) => handlePeopleListChange(listName, index, 'name', e.target.value)} />
+                      <FormInput label="Role" name={`pa.${listName}.${index}.role`} value={person.role} onChange={(e) => handlePeopleListChange(listName, index, 'role', e.target.value)} />
+                      <FormInput label="Image URL" name={`pa.${listName}.${index}.imageUrl`} value={person.imageUrl} onChange={(e) => handlePeopleListChange(listName, index, 'imageUrl', e.target.value)} />
+                      <button type="button" onClick={() => removePeopleListItem(listName, index)} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-3 rounded-md h-10">Remove</button>
+                  </div>
+              ))}
+              <button type="button" onClick={() => addPeopleListItem(listName)} className="mt-2 bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-4 rounded-md">Add {title.slice(0, -1)}</button>
+          </div>
+        );
         return <>
             <FormInput label="Event Title" name="eventDetails.title" value={formData.eventDetails?.title || ''} onChange={handleInputChange} required/>
             <FormInput label="Project Title" name="projectAnnouncementDetails.title" value={pa.title || ''} onChange={handleInputChange} required/>
             <FormInput label="Poster URL" name="projectAnnouncementDetails.posterUrl" value={pa.posterUrl || ''} onChange={handleInputChange} required/>
-            <FormInput label="Status" name="projectAnnouncementDetails.status" value={pa.status || ''} onChange={handleInputChange} required/>
+            <div>
+              <label htmlFor="projectAnnouncementDetails.status" className="block text-sm font-medium text-slate-300 mb-1">Status</label>
+              <select name="projectAnnouncementDetails.status" value={pa.status || ''} onChange={handleInputChange} required className="w-full bg-slate-700 text-white rounded-md p-2 border border-slate-600 focus:ring-2 focus:ring-purple-500">
+                {Object.values(ProjectStatus).map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
             <FormInput label="Expected Release" name="projectAnnouncementDetails.expectedRelease" value={pa.expectedRelease || ''} onChange={handleInputChange} required/>
-            <FormInput label="Crew" name="projectAnnouncementDetails.crew" value={pa.crew || ''} onChange={handleInputChange} />
             <FormInput label="Logline" name="projectAnnouncementDetails.logline" as="textarea" value={pa.logline || ''} onChange={handleInputChange} />
+            <div className="space-y-4 pt-4 border-t border-slate-700">
+                <h2 className="text-xl font-bold text-white">Relationship</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="relationshipType" className="block text-sm font-medium text-slate-300 mb-1">Type</label>
+                    <select id="relationshipType" value={pa.relationship?.type || ''} onChange={(e) => handleRelationshipChange('type', e.target.value)} className="w-full bg-slate-700 text-white rounded-md p-2 border border-slate-600 focus:ring-2 focus:ring-purple-500">
+                      <option value="">None</option>
+                      {Object.values(ProjectRelationshipType).map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  {pa.relationship?.type && (
+                     <SearchableLinkSelector
+                        title="Link to Existing Movie/Series"
+                        items={allMovies.map(m => ({ id: m.id, name: m.title }))}
+                        selectedIds={pa.relationship.relatedMovieId ? [pa.relationship.relatedMovieId] : []}
+                        onSelectionChange={(newIds) => handleRelationshipChange('relatedMovieId', newIds[0] || '')}
+                    />
+                  )}
+                </div>
+            </div>
+            <div className="space-y-4 pt-4 border-t border-slate-700">
+                <PeopleListEditor title="Cast" listName="cast" />
+            </div>
+            <div className="space-y-4 pt-4 border-t border-slate-700">
+                <PeopleListEditor title="Crew" listName="crew" />
+            </div>
         </>;
       case PostType.Trailer:
         return <>
@@ -315,7 +419,10 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
             <FormInput label="Video Duration (seconds)" name="videoDuration" type="number" value={formData.videoDuration || 0} onChange={handleInputChange} required />
         </>;
       case PostType.Birthday:
-         return <FormInput label="Event Title (e.g., Happy Birthday...)" name="eventDetails.title" value={formData.eventDetails?.title || ''} onChange={handleInputChange} required />;
+         return <>
+            <FormInput label="Event Title (e.g., Happy Birthday...)" name="eventDetails.title" value={formData.eventDetails?.title || ''} onChange={handleInputChange} required />
+            <FormInput label="Image URL" name="imageUrl" value={formData.imageUrl || ''} onChange={handleInputChange} />
+         </>;
       case PostType.MovieDetails:
         const md = formData.movieDetails || {};
         return <>
@@ -397,9 +504,12 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
         const tr = formData.triviaDetails || {};
         return <>
             <FormInput label="Event Title (e.g., Did You Know?)" name="eventDetails.title" value={formData.eventDetails?.title || ''} onChange={handleInputChange} required />
+             <FormInput label="Image URL (Optional)" name="imageUrl" value={formData.imageUrl || ''} onChange={handleInputChange} />
             <FormInput label="Trivia Items (one per line)" name="triviaDetails.triviaItems" as="textarea" value={tr.triviaItems || ''} onChange={handleInputChange} required />
         </>;
-      default: // Announcement
+      case PostType.Announcement:
+         return <FormInput label="Image URL (Optional)" name="imageUrl" value={formData.imageUrl || ''} onChange={handleInputChange} />;
+      default:
         return null;
     }
   };
@@ -458,6 +568,23 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
         </div>
 
         {renderLinksSection()}
+        
+        <fieldset className="space-y-4 pt-4 border-t border-slate-700">
+            <legend className="text-xl font-bold text-white w-full pb-2">SEO Settings</legend>
+            <FormInput 
+              label="Meta Description (for search engines, ~160 chars)"
+              name="metaDescription"
+              as="textarea"
+              value={formData.metaDescription || ''}
+              onChange={handleInputChange}
+            />
+            <FormInput 
+              label="SEO Keywords (comma-separated)"
+              name="seoKeywords"
+              value={formData.seoKeywords || ''}
+              onChange={handleInputChange}
+            />
+        </fieldset>
 
         <fieldset className="space-y-4 pt-4 border-t border-slate-700">
           <legend className="text-xl font-bold text-white w-full pb-2">Engagement Settings</legend>

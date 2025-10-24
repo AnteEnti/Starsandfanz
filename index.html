@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Stars And Fanz</title>
+    <title>Fanz Adda</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -230,13 +230,24 @@
       .animate-text-glow {
         animation: text-glow 3s ease-in-out infinite;
       }
+      @keyframes rattle {
+        0%, 50%, 100% { transform: rotate(0deg); }
+        10%, 30% { transform: rotate(-5deg); }
+        20%, 40% { transform: rotate(5deg); }
+        60%, 80% { transform: translateX(5px); }
+        70%, 90% { transform: translateX(-5px); }
+      }
+      .animate-rattle {
+        animation: rattle 1s ease-in-out forwards;
+      }
     </style>
   <script type="importmap">
 {
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.26.0"
   }
 }
 </script>
