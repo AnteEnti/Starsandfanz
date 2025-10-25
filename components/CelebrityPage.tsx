@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Post, Suggestion, FilmographyItem } from '../types';
+import { Post, Suggestion, FilmographyItem, MovieDetails, CelebrityDetails } from '../types';
 import { PostType } from '../PostType';
 import RelatedBuzz from './movie_page/RelatedBuzz';
 import CelebrityHero from './celebrity_page/CelebrityHero';
@@ -13,14 +13,30 @@ interface CelebrityPageProps {
   onClose: () => void;
   onReaction: (postId: string, reactionId: string) => void;
   onFanzSay: (postId: string, fanzSayId: string) => void;
-  onRatePost: (postId: string, rating: number) => void;
   currentUserAvatar: string;
   onViewMoviePage: (movieId: string) => void;
   onViewFullPost: (post: Post) => void;
   onToggleFan: (suggestionId: string) => void;
+  onViewCelebrityPage: (celebrityId: string) => void;
+  moviesMap: Map<string, MovieDetails>;
+  celebritiesMap: Map<string, CelebrityDetails>;
 }
 
-const CelebrityPage: React.FC<CelebrityPageProps> = ({ celebrityId, posts, suggestions, onClose, onToggleFan, ...buzzProps }) => {
+const CelebrityPage: React.FC<CelebrityPageProps> = ({ 
+  celebrityId, 
+  posts, 
+  suggestions, 
+  onClose, 
+  onReaction,
+  onFanzSay,
+  currentUserAvatar,
+  onViewMoviePage,
+  onViewFullPost,
+  onToggleFan,
+  onViewCelebrityPage,
+  moviesMap,
+  celebritiesMap
+}) => {
 
   const celebrityData = useMemo(() => {
     const celebPost = posts.find(p => p.type === PostType.Celebrity && p.celebrityDetails?.id === celebrityId);
@@ -116,10 +132,20 @@ const CelebrityPage: React.FC<CelebrityPageProps> = ({ celebrityId, posts, sugge
               </div>
             </div>
 
-            <CelebrityFilmography filmography={filmography} onViewMoviePage={buzzProps.onViewMoviePage} />
+            <CelebrityFilmography filmography={filmography} onViewMoviePage={onViewMoviePage} />
 
             {relatedPosts.length > 0 && (
-                <RelatedBuzz posts={relatedPosts} {...buzzProps} />
+                <RelatedBuzz 
+                    posts={relatedPosts}
+                    onReaction={onReaction}
+                    onFanzSay={onFanzSay}
+                    currentUserAvatar={currentUserAvatar}
+                    onViewMoviePage={onViewMoviePage}
+                    onViewFullPost={onViewFullPost}
+                    onViewCelebrityPage={onViewCelebrityPage}
+                    moviesMap={moviesMap}
+                    celebritiesMap={celebritiesMap}
+                />
             )}
         </div>
       </div>

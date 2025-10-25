@@ -1,8 +1,6 @@
-
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Post, Suggestion, SuggestionType, PostType, FanzSay, UserProfileData, HypeLogEntry, Reaction, Banner, SiteSettings, ProjectStatus, Person, ProjectRelationshipType } from './types';
+import { Post, Suggestion, SuggestionType, PostType, FanzSay, UserProfileData, HypeLogEntry, Reaction, Banner, SiteSettings, ProjectStatus, Person, ProjectRelationshipType, MovieDetails, CelebrityDetails } from './types';
 import { loadSiteSettings, saveSiteSettings } from './utils/siteSettings';
-// FIX: Changed to named import for Header component to resolve module resolution error.
 import { Header } from './components/Header';
 import PostCard from './components/PostCard';
 import SuggestionCarousel from './components/SuggestionCarousel';
@@ -10,8 +8,6 @@ import Modal from './components/Modal';
 import UserProfile from './components/UserProfile';
 import AdminPage from './components/AdminPage';
 import PostCardSkeleton from './components/PostCardSkeleton';
-import ContentModal from './components/ContentModal';
-import InFeedSuggestion from './components/InFeedSuggestion';
 import MoviePage from './components/MoviePage';
 import WelcomeBanner from './components/WelcomeBanner';
 import Footer from './components/Footer';
@@ -20,6 +16,8 @@ import TermsPage from './components/pages/TermsPage';
 import ContactPage from './components/pages/ContactPage';
 import DisclaimerPage from './components/pages/DisclaimerPage';
 import CelebrityPage from './components/CelebrityPage';
+import BottomNavBar from './components/BottomNavBar';
+import PostPage from './components/PostPage';
 
 const createFanAvatars = (count: number, seed: string) => 
   Array.from({ length: count }, (_, i) => `https://i.pravatar.cc/150?u=${seed}-${i}`);
@@ -60,6 +58,7 @@ const INITIAL_POSTS: Post[] = [
     reactions: [
       { id: 'celebrate', emoji: '🎉', count: 18000 },
       { id: 'love', emoji: '❤️', count: 15000 },
+      { id: 'points', emoji: '⭐', count: 9503 },
     ],
     fanzSays: [
       { id: 'sc-telugu-pa-1', text: "అద్భుతం! 🔥", fans: createFanAvatars(18, 'telugu-pa1') },
@@ -68,7 +67,6 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-telugu-pa-4', text: 'జై సినిమా!', fans: [] },
     ],
     linkedMovieIds: [MOVIE_KIREETAM_ID],
-    rating: { average: 4.8, count: 2150 },
   },
   {
     id: 'post-telugu-bday-1',
@@ -84,7 +82,8 @@ const INITIAL_POSTS: Post[] = [
     reactionsEnabled: true,
     reactions: [
       { id: 'celebrate', emoji: '🎉', count: 22000 },
-      { id: 'love', emoji: '❤️', count: 19500 },
+      { id: 'love', emoji: '❤️', count: 19503 },
+      { id: 'points', emoji: '⭐', count: 12100 },
     ],
     fanzSays: [
       { id: 'sc-telugu-bday-1', text: 'పుట్టినరోజు శుభాకాంక్షలు! 🎉', fans: createFanAvatars(28, 'telugu-bday1') },
@@ -93,7 +92,6 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-telugu-bday-4', text: 'స్టే బ్లెస్డ్!', fans: [] },
     ],
     linkedCelebrityIds: [CELEB_TELUGU_SUPERSTAR_ID],
-    rating: { average: 4.9, count: 3200 },
   },
     {
     id: 'post-award-1',
@@ -118,6 +116,7 @@ const INITIAL_POSTS: Post[] = [
     reactions: [
         { id: 'celebrate', emoji: '🎉', count: 25000 },
         { id: 'love', emoji: '❤️', count: 18000 },
+        { id: 'points', emoji: '⭐', count: 15200 },
     ],
     fanzSays: [
       { id: 'sc-award-1', text: 'Well Deserved! 🏆', fans: createFanAvatars(12, 'award1') },
@@ -127,7 +126,6 @@ const INITIAL_POSTS: Post[] = [
     ],
     linkedMovieIds: [MOVIE_CHRONOS_PROPHECY_ID],
     linkedCelebrityIds: [CELEB_LEO_STARLIGHT_ID],
-    rating: { average: 4.9, count: 4200 },
   },
   {
     id: 'post-box-office-1',
@@ -148,13 +146,15 @@ const INITIAL_POSTS: Post[] = [
       linkedMovieId: MOVIE_CHRONOS_PROPHECY_ID,
     },
     reactionsEnabled: true,
-    reactions: [{ id: 'celebrate', emoji: '🎉', count: 14000 }],
+    reactions: [
+        { id: 'celebrate', emoji: '🎉', count: 14000 },
+        { id: 'points', emoji: '⭐', count: 7800 },
+    ],
     fanzSays: [
       { id: 'sc-bo-1', text: 'Record breaking! 💰', fans: createFanAvatars(10, 'bo1') },
       { id: 'sc-bo-2', text: 'Absolutely deserved!', fans: createFanAvatars(8, 'bo2') },
     ],
     linkedMovieIds: [MOVIE_CHRONOS_PROPHECY_ID],
-    rating: { average: 4.7, count: 1100 },
   },
   {
     id: 'post-trivia-1',
@@ -177,13 +177,15 @@ const INITIAL_POSTS: Post[] = [
       linkedCelebrityId: CELEB_LEO_STARLIGHT_ID,
     },
     reactionsEnabled: true,
-    reactions: [{ id: 'love', emoji: '❤️', count: 8900 }],
+    reactions: [
+        { id: 'love', emoji: '❤️', count: 8900 },
+        { id: 'points', emoji: '⭐', count: 6720 },
+    ],
     fanzSays: [
       { id: 'sc-trivia-1', text: 'Wow, I had no idea!', fans: createFanAvatars(7, 'trivia1') },
       { id: 'sc-trivia-2', text: 'So talented!', fans: createFanAvatars(5, 'trivia2') },
     ],
     linkedCelebrityIds: [CELEB_LEO_STARLIGHT_ID],
-    rating: { average: 4.6, count: 950 },
   },
    {
     id: 'post-project-announce-1',
@@ -215,6 +217,7 @@ const INITIAL_POSTS: Post[] = [
     reactions: [
         { id: 'celebrate', emoji: '🎉', count: 15000 },
         { id: 'love', emoji: '❤️', count: 12000 },
+        { id: 'points', emoji: '⭐', count: 8800 },
     ],
     fanzSays: [
       { id: 'sc-pa-1', text: "Let's Gooo! 🔥", fans: createFanAvatars(21, 'pa1') },
@@ -223,7 +226,6 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-pa-4', text: 'Another masterpiece incoming!', fans: [] },
     ],
     linkedMovieIds: [MOVIE_AETHELGARDS_LEGACY_ID],
-    rating: { average: 4.5, count: 1800 },
   },
   {
     id: 'post-countdown-1',
@@ -242,7 +244,10 @@ const INITIAL_POSTS: Post[] = [
       bookingUrl: '#',
     },
     reactionsEnabled: true,
-    reactions: [{ id: 'celebrate', emoji: '🎉', count: 9800 }],
+    reactions: [
+        { id: 'celebrate', emoji: '🎉', count: 9800 },
+        { id: 'points', emoji: '⭐', count: 5100 },
+    ],
     fanzSays: [
         { id: 'sc-cd-1', text: "Can't Wait! 🔥", fans: createFanAvatars(15, 'cd1') },
         { id: 'sc-cd-2', text: 'Take my money! 💸', fans: createFanAvatars(11, 'cd2') },
@@ -268,7 +273,10 @@ const INITIAL_POSTS: Post[] = [
       { id: 'film-4', title: 'Neon Shadows', year: 2013, posterUrl: 'https://picsum.photos/seed/neon-shadows-poster/400/600' },
     ],
     reactionsEnabled: true,
-    reactions: [{ id: 'love', emoji: '❤️', count: 11000 }],
+    reactions: [
+        { id: 'love', emoji: '❤️', count: 11000 },
+        { id: 'points', emoji: '⭐', count: 8300 },
+    ],
     fanzSays: [
       { id: 'sc-film-1', text: 'All of them! 🤩', fans: createFanAvatars(9, 'film1') },
       { id: 'sc-film-2', text: "'Chronos Prophecy' is my favorite!", fans: createFanAvatars(6, 'film2') },
@@ -276,7 +284,6 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-film-4', text: 'An absolute legend!', fans: [] },
     ],
     linkedCelebrityIds: [CELEB_LEO_STARLIGHT_ID],
-    rating: { average: 4.8, count: 1300 },
   },
    {
     id: 'post-celeb-1',
@@ -301,6 +308,7 @@ const INITIAL_POSTS: Post[] = [
     reactions: [
         { id: 'love', emoji: '❤️', count: 22000 },
         { id: 'celebrate', emoji: '🎉', count: 14000 },
+        { id: 'points', emoji: '⭐', count: 19800 },
     ],
     fanzSays: [
       { id: 'sc-celeb-1', text: 'The GOAT! 🐐', fans: createFanAvatars(10, 'celeb1') },
@@ -326,7 +334,10 @@ const INITIAL_POSTS: Post[] = [
       birthDate: '1988-04-21',
     },
     reactionsEnabled: true,
-    reactions: [{ id: 'love', emoji: '❤️', count: 18000 }],
+    reactions: [
+        { id: 'love', emoji: '❤️', count: 18000 },
+        { id: 'points', emoji: '⭐', count: 11000 },
+    ],
     fanzSays: [],
   },
   {
@@ -347,7 +358,10 @@ const INITIAL_POSTS: Post[] = [
       birthDate: '1981-09-15',
     },
     reactionsEnabled: true,
-    reactions: [{ id: 'love', emoji: '❤️', count: 16500 }],
+    reactions: [
+        { id: 'love', emoji: '❤️', count: 16500 },
+        { id: 'points', emoji: '⭐', count: 9500 },
+    ],
     fanzSays: [],
   },
   {
@@ -364,6 +378,7 @@ const INITIAL_POSTS: Post[] = [
     reactions: [
         { id: 'celebrate', emoji: '🎉', count: 12000 },
         { id: 'love', emoji: '❤️', count: 8500 },
+        { id: 'points', emoji: '⭐', count: 10500 },
     ],
     fanzSays: [
       { id: 'sc-bday-1', text: 'Happy Birthday! 🎉', fans: createFanAvatars(32, 'bday1') },
@@ -372,7 +387,6 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-bday-4', text: 'Stay blessed!', fans: [] },
     ],
     linkedCelebrityIds: [CELEB_LEO_STARLIGHT_ID],
-    rating: { average: 4.8, count: 2100 },
   },
   {
     id: 'post-trailer-1',
@@ -387,6 +401,7 @@ const INITIAL_POSTS: Post[] = [
     reactions: [
         { id: 'love', emoji: '❤️', count: 5600 },
         { id: 'whistle', emoji: '🥳', count: 3200 },
+        { id: 'points', emoji: '⭐', count: 4900 },
     ],
     fanzSays: [
       { id: 'sc-trailer-1', text: 'Mind Blowing! 🤯', fans: createFanAvatars(4, 'trailer1') },
@@ -395,7 +410,6 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-trailer-4', text: 'Instant Blockbuster!', fans: [] },
     ],
     linkedMovieIds: [MOVIE_GALACTIC_ECHOES_ID],
-    rating: { average: 4.4, count: 980 },
   },
   {
     id: 'post-anniv-1',
@@ -410,7 +424,10 @@ const INITIAL_POSTS: Post[] = [
       subtitle: "5th Anniversary",
     },
     reactionsEnabled: true,
-    reactions: [{ id: 'love', emoji: '❤️', count: 7800 }],
+    reactions: [
+        { id: 'love', emoji: '❤️', count: 7800 },
+        { id: 'points', emoji: '⭐', count: 6200 },
+    ],
     fanzSays: [
       { id: 'sc-anniv-1', text: 'A true classic! 🎬', fans: createFanAvatars(8, 'anniv1') },
       { id: 'sc-anniv-2', text: "Feels like yesterday!", fans: createFanAvatars(5, 'anniv2') },
@@ -418,7 +435,6 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-anniv-4', text: 'Changed my life!', fans: [] },
     ],
     linkedMovieIds: [MOVIE_CHRONOS_PROPHECY_ID],
-    rating: { average: 4.9, count: 1200 },
   },
   {
     id: 'post-announce-1',
@@ -428,14 +444,16 @@ const INITIAL_POSTS: Post[] = [
     timestamp: '5 days ago',
     content: "Big news, everyone! We're officially launching a fan art competition for the upcoming album. The winning design will be featured on official merchandise and the artist will get to meet the star! Submissions open next week. Get your creative juices flowing!",
     reactionsEnabled: true,
-    reactions: [{ id: 'celebrate', emoji: '🎉', count: 4100 }],
+    reactions: [
+        { id: 'celebrate', emoji: '🎉', count: 4100 },
+        { id: 'points', emoji: '⭐', count: 2500 },
+    ],
     fanzSays: [
       { id: 'sc-announce-1', text: 'This is amazing news! 🎉', fans: createFanAvatars(4, 'announce1') },
       { id: 'sc-announce-2', text: 'So exciting!', fans: createFanAvatars(3, 'announce2') },
       { id: 'sc-announce-3', text: "I'm so participating!", fans: [] },
     ],
     linkedMovieIds: [MOVIE_GALACTIC_ECHOES_ID],
-    rating: { average: 4.2, count: 500 },
   },
   {
     id: 'post-movie-1',
@@ -488,7 +506,10 @@ const INITIAL_POSTS: Post[] = [
         { season: 1, episodeNumber: 4, title: 'Point of No Return', synopsis: 'Aris must make a choice that will either save the timeline or shatter it forever.', thumbnailUrl: 'https://picsum.photos/seed/cp-s1e4/400/225' },
     ],
     reactionsEnabled: true,
-    reactions: [{ id: 'love', emoji: '❤️', count: 15000 }],
+    reactions: [
+        { id: 'love', emoji: '❤️', count: 15000 },
+        { id: 'points', emoji: '⭐', count: 11500 },
+    ],
     fanzSays: [
       { id: 'sc-movie-1', text: 'An absolute masterpiece! 💯', fans: createFanAvatars(13, 'movie1') },
       { id: 'sc-movie-2', text: 'The ending was brilliant!', fans: createFanAvatars(9, 'movie2') },
@@ -520,6 +541,7 @@ const INITIAL_POSTS: Post[] = [
     reactions: [
         { id: 'love', emoji: '❤️', count: 9200 },
         { id: 'whistle', emoji: '🥳', count: 1100 },
+        { id: 'points', emoji: '⭐', count: 7300 },
     ],
     fanzSays: [
       { id: 'sc-char-1', text: 'Such a complex character!', fans: createFanAvatars(7, 'char1') },
@@ -541,6 +563,7 @@ const INITIAL_POSTS: Post[] = [
     reactions: [
         { id: 'love', emoji: '❤️', count: 2500 },
         { id: 'celebrate', emoji: '🎉', count: 1800 },
+        { id: 'points', emoji: '⭐', count: 3450 },
     ],
     fanzSays: [
       { id: 'sc-img-1', text: 'Absolutely stunning! 💖', fans: createFanAvatars(2, 'img1') },
@@ -549,7 +572,6 @@ const INITIAL_POSTS: Post[] = [
       { id: 'sc-img-4', text: 'Setting new trends!', fans: [] },
     ],
     linkedMovieIds: [MOVIE_GALACTIC_ECHOES_ID],
-    rating: { average: 4.7, count: 450 },
   },
 ];
 
@@ -561,6 +583,17 @@ const INITIAL_SUGGESTIONS: Suggestion[] = [
   { id: 'sugg-5', name: 'Behind The Scenes', avatar: 'https://picsum.photos/seed/bts-topic/200', type: SuggestionType.Topic, isFanned: true },
   { id: 'sugg-6', name: 'Nova Lux', avatar: 'https://i.pravatar.cc/150?u=nova-lux', type: SuggestionType.Celeb, isFanned: false, linkedId: CELEB_NOVA_LUX_ID },
 ];
+
+type ActiveView = 'feed' | 'profile' | 'admin' | 'favorites' | 'about' | 'terms' | 'contact' | 'disclaimer';
+
+interface NavItem {
+  id: ActiveView;
+  label: string;
+  icon: string;
+}
+
+const MAX_HYPE_LEVEL = 100;
+const CELEBRATION_DURATION = 30000; // 30 seconds
 
 const App: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -574,11 +607,11 @@ const App: React.FC = () => {
     favoriteGenres: ['Sci-Fi', 'Thriller'],
   });
   const [isUnfanModalOpen, setIsUnfanModalOpen] = useState(false);
-  const [activePost, setActivePost] = useState<Post | null>(null);
+  const [activePostId, setActivePostId] = useState<string | null>(null);
   const [activeMovieId, setActiveMovieId] = useState<string | null>(null);
   const [activeCelebrityId, setActiveCelebrityId] = useState<string | null>(null);
   const [suggestionToUnfan, setSuggestionToUnfan] = useState<{ id: string; name: string } | null>(null);
-  const [activeView, setActiveView] = useState<'feed' | 'profile' | 'admin' | 'favorites' | 'about' | 'terms' | 'contact' | 'disclaimer'>('feed');
+  const [activeView, setActiveView] = useState<ActiveView>('feed');
   const [isAdmin] = useState(true); // Dummy admin user
   
   const [userHypeState, setUserHypeState] = useState({ count: 3, lastReset: new Date().toISOString() });
@@ -601,6 +634,10 @@ const App: React.FC = () => {
   
   const [siteSettings, setSiteSettings] = useState<SiteSettings>(loadSiteSettings());
   
+  const [hypeLevel, setHypeLevel] = useState(0);
+  const [isCelebrationModeActive, setIsCelebrationModeActive] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
   const activeBanner = useMemo(() => {
     const now = new Date();
     // A simple check for mobile. In a real app, this might be more robust.
@@ -659,20 +696,6 @@ const App: React.FC = () => {
     }
   }, [siteSettings]);
 
-
-  // Sync active post in modal with the main posts list
-  useEffect(() => {
-    if (activePost) {
-      const updatedPost = posts.find(p => p.id === activePost.id);
-      if (updatedPost && JSON.stringify(updatedPost) !== JSON.stringify(activePost)) {
-        setActivePost(updatedPost);
-      } else if (!updatedPost) {
-        // Post was deleted, close the modal
-        setActivePost(null);
-      }
-    }
-  }, [posts, activePost]);
-
   // Handle scroll for banner minimization
   useEffect(() => {
     // This effect should only trigger minimization once on scroll down,
@@ -687,6 +710,49 @@ const App: React.FC = () => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, [isBannerMinimized]);
+
+  // Effect for header shrink on scroll
+  useEffect(() => {
+    const handleHeaderScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+
+    // Only attach scroll listener if no full-page view is active
+    if (activeMovieId || activeCelebrityId || activePostId) {
+      setIsScrolled(false); // Reset on page open
+      return; // Don't attach listener
+    }
+
+    window.addEventListener('scroll', handleHeaderScroll, { passive: true });
+    handleHeaderScroll(); // Initial check
+
+    return () => {
+      window.removeEventListener('scroll', handleHeaderScroll);
+    };
+  }, [activeMovieId, activeCelebrityId, activePostId]);
+  
+    // Effect to add/remove body class for Celebration Mode
+  useEffect(() => {
+    if (isCelebrationModeActive) {
+      document.body.classList.add('celebration-mode');
+    } else {
+      document.body.classList.remove('celebration-mode');
+    }
+    // Cleanup on unmount
+    return () => document.body.classList.remove('celebration-mode');
+  }, [isCelebrationModeActive]);
+
+  // Effect to handle the Celebration Mode timer
+  useEffect(() => {
+    if (isCelebrationModeActive) {
+      const timer = setTimeout(() => {
+        setIsCelebrationModeActive(false);
+        setHypeLevel(0); // Reset the meter
+      }, CELEBRATION_DURATION);
+      return () => clearTimeout(timer); // Cleanup timer if component unmounts
+    }
+  }, [isCelebrationModeActive]);
+
 
   const handleReopenBanner = useCallback(() => {
     setIsBannerMinimized(false);
@@ -708,20 +774,24 @@ const App: React.FC = () => {
     setSiteSettings(newSettings); // This will trigger the useEffect above to apply changes
   }, []);
 
-  const { allGenres, allMovies, allStars, allCelebrities } = useMemo(() => {
+  const { allGenres, allMovies, allStars, allCelebrities, moviesMap, celebritiesMap } = useMemo(() => {
     const genres = new Set<string>();
     const movies = new Map<string, string>();
     const stars = new Set<string>();
     const celebrities = new Map<string, string>();
+    const moviesMap = new Map<string, MovieDetails>();
+    const celebritiesMap = new Map<string, CelebrityDetails>();
 
     INITIAL_POSTS.forEach(post => {
       if (post.movieDetails) {
         movies.set(post.movieDetails.id, post.movieDetails.title);
+        moviesMap.set(post.movieDetails.id, post.movieDetails);
         post.movieDetails.genres.forEach(g => genres.add(g));
         post.movieDetails.cast.forEach(c => stars.add(c));
       }
       if (post.celebrityDetails) {
         celebrities.set(post.celebrityDetails.id, post.celebrityDetails.name);
+        celebritiesMap.set(post.celebrityDetails.id, post.celebrityDetails);
       }
       if (post.filmographyDetails) {
         post.filmographyDetails.forEach(f => movies.set(f.id, f.title));
@@ -733,13 +803,15 @@ const App: React.FC = () => {
       allMovies: Array.from(movies.entries()).map(([id, title]) => ({ id, title })),
       allStars: Array.from(stars),
       allCelebrities: Array.from(celebrities.entries()).map(([id, name]) => ({ id, name })),
+      moviesMap,
+      celebritiesMap,
     };
   }, []);
   
   const handleViewMoviePage = useCallback((movieId: string) => {
     setActiveMovieId(movieId);
     setActiveCelebrityId(null);
-    setActivePost(null); // Close modal if open
+    setActivePostId(null);
     setActiveView('feed'); // Ensure we are not on a static page
     window.scrollTo(0, 0);
   }, []);
@@ -752,7 +824,7 @@ const App: React.FC = () => {
   const handleViewCelebrityPage = useCallback((celebId: string) => {
     setActiveCelebrityId(celebId);
     setActiveMovieId(null);
-    setActivePost(null);
+    setActivePostId(null);
     setActiveView('feed');
     window.scrollTo(0, 0);
   }, []);
@@ -762,12 +834,49 @@ const App: React.FC = () => {
   }, []);
 
   const handleViewPost = useCallback((post: Post) => {
+    // 1. Handle direct entity post types
     if (post.type === PostType.MovieDetails && post.movieDetails) {
       handleViewMoviePage(post.movieDetails.id);
-    } else {
-      setActivePost(post);
+      return;
     }
-  }, [handleViewMoviePage]);
+    if (post.type === PostType.Celebrity && post.celebrityDetails) {
+      handleViewCelebrityPage(post.celebrityDetails.id);
+      return;
+    }
+    // A Project Announcement is effectively a "pre-movie" page
+    if (post.type === PostType.ProjectAnnouncement && post.linkedMovieIds?.length === 1) {
+      handleViewMoviePage(post.linkedMovieIds[0]);
+      return;
+    }
+
+    // 2. For other post types, check for unambiguous links
+    const hasOneMovie = post.linkedMovieIds?.length === 1;
+    const hasOneCeleb = post.linkedCelebrityIds?.length === 1;
+
+    // If it's clearly about one movie, go there
+    if (hasOneMovie && !hasOneCeleb) {
+      handleViewMoviePage(post.linkedMovieIds![0]);
+      return;
+    }
+
+    // If it's clearly about one celebrity, go there
+    if (hasOneCeleb && !hasOneMovie) {
+      handleViewCelebrityPage(post.linkedCelebrityIds![0]);
+      return;
+    }
+    
+    // 3. Fallback for ambiguous posts (e.g., linked to both a movie and celeb) 
+    // or posts with no links (e.g., generic announcement).
+    setActivePostId(post.id);
+    setActiveMovieId(null);
+    setActiveCelebrityId(null);
+    setActiveView('feed');
+    window.scrollTo(0, 0);
+  }, [handleViewMoviePage, handleViewCelebrityPage]);
+
+  const handleClosePostPage = useCallback(() => {
+    setActivePostId(null);
+  }, []);
 
   const handleAddPost = useCallback((postData: Omit<Post, 'id' | 'author' | 'avatar' | 'timestamp'>) => {
     const newPost: Post = {
@@ -799,6 +908,17 @@ const App: React.FC = () => {
       )
     );
   }, []);
+  
+  const handleToggleFavoriteMovie = useCallback((movieTitle: string) => {
+    setUserProfile(prevProfile => {
+      const isAlreadyFavorite = prevProfile.favoriteMovies.includes(movieTitle);
+      const newFavoriteMovies = isAlreadyFavorite
+        ? prevProfile.favoriteMovies.filter(title => title !== movieTitle)
+        : [...prevProfile.favoriteMovies, movieTitle];
+      
+      return { ...prevProfile, favoriteMovies: newFavoriteMovies };
+    });
+  }, []);
 
   const handleStartUnfan = useCallback((id: string, name: string) => {
     setSuggestionToUnfan({ id, name });
@@ -818,6 +938,19 @@ const App: React.FC = () => {
     setSuggestionToUnfan(null);
   }, []);
 
+  const incrementHype = useCallback(() => {
+    setHypeLevel(prevLevel => {
+      if (prevLevel >= MAX_HYPE_LEVEL) {
+        return MAX_HYPE_LEVEL;
+      }
+      const newLevel = prevLevel + 1;
+      if (newLevel >= MAX_HYPE_LEVEL) {
+        setIsCelebrationModeActive(true);
+      }
+      return newLevel;
+    });
+  }, []);
+
   const handleReaction = useCallback((postId: string, reactionId: string) => {
     setPosts(prevPosts =>
       prevPosts.map(post => {
@@ -833,29 +966,8 @@ const App: React.FC = () => {
         return post;
       })
     );
-  }, []);
-
-  const handleRatePost = useCallback((postId: string, newRating: number) => {
-    setPosts(prevPosts =>
-      prevPosts.map(post => {
-        if (post.id === postId) {
-          const currentRating = post.rating || { average: 0, count: 0 };
-          // This logic assumes a user can only rate once. A more robust system would track user IDs.
-          const newCount = currentRating.count + 1;
-          const newAverage = ((currentRating.average * currentRating.count) + newRating) / newCount;
-          
-          return {
-            ...post,
-            rating: {
-              average: newAverage,
-              count: newCount
-            }
-          };
-        }
-        return post;
-      })
-    );
-  }, []);
+    incrementHype();
+  }, [incrementHype]);
 
   const handleFanzSay = useCallback((postId: string, fanzSayId: string) => {
     setPosts(prevPosts =>
@@ -876,7 +988,8 @@ const App: React.FC = () => {
         return post;
       })
     );
-  }, [userProfile.avatar]);
+    incrementHype();
+  }, [userProfile.avatar, incrementHype]);
 
   const handleHype = useCallback((movieId: string) => {
     const now = new Date();
@@ -899,11 +1012,8 @@ const App: React.FC = () => {
 
     if (newCount > 0) {
         newCount--;
-        // In a real app, this action would be sent to a server.
-        console.log(`Hyped movie ${movieId}! Hypes left this week: ${newCount}`);
         setHypeLog(prevLog => [...prevLog, { movieId, timestamp: new Date().toISOString() }]);
     } else {
-        console.log("No hypes left for this week.");
         return; // Don't update state if no hypes left
     }
 
@@ -923,23 +1033,6 @@ const App: React.FC = () => {
   );
   
   const unfannedSuggestions = useMemo(() => suggestions.filter(s => !s.isFanned), [suggestions]);
-
-  const feedItems = useMemo(() => {
-    const items: (Post | { type: 'suggestion'; suggestion: Suggestion })[] = [];
-    let suggestionIndex = 0;
-    posts.forEach((post, index) => {
-        items.push(post);
-        // Inject a suggestion every 4 posts, if available
-        if ((index + 1) % 4 === 0 && suggestionIndex < unfannedSuggestions.length) {
-            items.push({
-                type: 'suggestion',
-                suggestion: unfannedSuggestions[suggestionIndex],
-            });
-            suggestionIndex++;
-        }
-    });
-    return items;
-  }, [posts, unfannedSuggestions]);
 
   const fannedSuggestionLinkedIds = useMemo(() => 
     suggestions.filter(s => s.isFanned && s.linkedId).map(s => s.linkedId!),
@@ -988,6 +1081,21 @@ const App: React.FC = () => {
       .filter((avatar): avatar is string => !!avatar); // Filter out any stars not found in the map
   }, [userProfile.favoriteStars, celebrityAvatarMap]);
   
+  const navItems: NavItem[] = useMemo(() => [
+    { id: 'feed', label: 'Feed', icon: 'home' },
+    { id: 'favorites', label: 'Favorites', icon: 'favorite' },
+    { id: 'profile', label: 'Profile', icon: 'person' },
+    ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: 'admin_panel_settings' } as const] : []),
+  ], [isAdmin]);
+
+  const getDesktopTabStyle = (view: ActiveView) => {
+    const baseStyle = "px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-800";
+    if (activeView === view) {
+      return `${baseStyle} bg-purple-600 text-white`;
+    }
+    return `${baseStyle} text-slate-300 hover:bg-slate-700`;
+  };
+  
   const renderActivePage = () => {
     if (activeMovieId) {
       return (
@@ -996,7 +1104,6 @@ const App: React.FC = () => {
           posts={posts}
           onClose={handleCloseMoviePage}
           onReaction={handleReaction}
-          onRatePost={handleRatePost}
           onFanzSay={handleFanzSay}
           currentUserAvatar={userProfile.avatar}
           onViewMoviePage={handleViewMoviePage}
@@ -1005,6 +1112,10 @@ const App: React.FC = () => {
           onHype={handleHype}
           hypeLog={hypeLog}
           onViewCelebrityPage={handleViewCelebrityPage}
+          moviesMap={moviesMap}
+          celebritiesMap={celebritiesMap}
+          onToggleFavoriteMovie={handleToggleFavoriteMovie}
+          favoriteMovies={userProfile.favoriteMovies}
         />
       );
     }
@@ -1017,24 +1128,41 @@ const App: React.FC = () => {
           suggestions={suggestions}
           onClose={handleCloseCelebrityPage}
           onReaction={handleReaction}
-          onRatePost={handleRatePost}
           onFanzSay={handleFanzSay}
           currentUserAvatar={userProfile.avatar}
           onViewMoviePage={handleViewMoviePage}
           onViewFullPost={handleViewPost}
           onToggleFan={handleToggleFan}
+          onViewCelebrityPage={handleViewCelebrityPage}
+          moviesMap={moviesMap}
+          celebritiesMap={celebritiesMap}
+        />
+      );
+    }
+
+    if (activePostId) {
+      return (
+        <PostPage
+          postId={activePostId}
+          posts={posts}
+          onClose={handleClosePostPage}
+          onReaction={handleReaction}
+          onFanzSay={handleFanzSay}
+          currentUserAvatar={userProfile.avatar}
+          onViewMoviePage={handleViewMoviePage}
+          onViewCelebrityPage={handleViewCelebrityPage}
         />
       );
     }
 
     return (
        <>
-          <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 sm:pb-6">
+          <main className="max-w-7xl mx-auto py-6 pb-24 sm:pb-6">
             {activeView === 'feed' && (
-              <div className="max-w-2xl mx-auto">
+              <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
                 {unfannedSuggestions.length > 0 && (
-                  <SuggestionCarousel 
-                    suggestions={unfannedSuggestions} 
+                  <SuggestionCarousel
+                    suggestions={unfannedSuggestions}
                     onToggleFan={handleToggleFan}
                     onStartUnfan={handleStartUnfan}
                     onViewCelebrityPage={handleViewCelebrityPage}
@@ -1043,40 +1171,31 @@ const App: React.FC = () => {
 
                 <div className="space-y-6 mt-6">
                   {isLoading ? (
-                    Array.from({ length: 5 }).map((_, index) => <PostCardSkeleton key={index} />)
+                    Array.from({ length: 3 }).map((_, index) => (
+                      <PostCardSkeleton key={index} />
+                    ))
                   ) : (
-                    feedItems.map((item) => {
-                      if ('id' in item) { // It's a Post
-                        return (
-                          <PostCard 
-                            key={item.id} 
-                            post={item} 
-                            onReaction={handleReaction}
-                            onFanzSay={handleFanzSay}
-                            onRatePost={handleRatePost}
-                            currentUserAvatar={userProfile.avatar}
-                            onViewFullPost={handleViewPost}
-                            onViewMoviePage={handleViewMoviePage}
-                            onViewCelebrityPage={handleViewCelebrityPage}
-                          />
-                        );
-                      } else { // It's a suggestion
-                        return (
-                          <InFeedSuggestion 
-                            key={`sugg-feed-${item.suggestion.id}`} 
-                            suggestion={item.suggestion} 
-                            onToggleFan={handleToggleFan}
-                          />
-                        );
-                      }
-                    })
+                    posts.map((post) => (
+                      <PostCard
+                        key={post.id}
+                        post={post}
+                        onReaction={handleReaction}
+                        onFanzSay={handleFanzSay}
+                        currentUserAvatar={userProfile.avatar}
+                        onViewFullPost={handleViewPost}
+                        onViewMoviePage={handleViewMoviePage}
+                        onViewCelebrityPage={handleViewCelebrityPage}
+                        moviesMap={moviesMap}
+                        celebritiesMap={celebritiesMap}
+                      />
+                    ))
                   )}
                 </div>
               </div>
             )}
             
             {activeView === 'favorites' && (
-              <div className="max-w-2xl mx-auto">
+              <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
                 <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
                   <span className="material-symbols-outlined text-rose-400">favorite</span>
                   Your Favorites Feed
@@ -1089,11 +1208,12 @@ const App: React.FC = () => {
                                 post={post} 
                                 onReaction={handleReaction}
                                 onFanzSay={handleFanzSay}
-                                onRatePost={handleRatePost}
                                 currentUserAvatar={userProfile.avatar}
                                 onViewFullPost={handleViewPost}
                                 onViewMoviePage={handleViewMoviePage}
                                 onViewCelebrityPage={handleViewCelebrityPage}
+                                moviesMap={moviesMap}
+                                celebritiesMap={celebritiesMap}
                             />
                         ))}
                     </div>
@@ -1108,7 +1228,7 @@ const App: React.FC = () => {
             )}
 
             {activeView === 'profile' && (
-              <div className="max-w-2xl mx-auto">
+              <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
                 <UserProfile
                   user={userProfile}
                   fannedItems={fannedSuggestions}
@@ -1117,12 +1237,13 @@ const App: React.FC = () => {
                   onStartUnfan={handleStartUnfan}
                   onReaction={handleReaction}
                   onFanzSay={handleFanzSay}
-                  onRatePost={handleRatePost}
                   onUpdateProfile={handleUpdateProfile}
                   favoriteOptions={{ genres: allGenres, movies: allMovies.map(m => m.title), stars: allStars }}
                   onViewFullPost={handleViewPost}
                   onViewMoviePage={handleViewMoviePage}
                   onViewCelebrityPage={handleViewCelebrityPage}
+                  moviesMap={moviesMap}
+                  celebritiesMap={celebritiesMap}
                 />
               </div>
             )}
@@ -1161,20 +1282,43 @@ const App: React.FC = () => {
         />
       )}
       <Header 
-        activeView={activeView} 
         setActiveView={setActiveView} 
         userAvatar={userProfile.avatar}
         favoriteStarAvatars={favoriteStarAvatars}
-        isAdmin={isAdmin}
         isBannerVisible={isWelcomeBannerVisible && isBannerMinimized}
         bannerContent={activeBanner}
         onDismissBanner={() => setIsWelcomeBannerVisible(false)}
         onReopenBanner={handleReopenBanner}
         siteName={siteSettings.siteName}
         logoUrl={siteSettings.logo}
+        hypeLevel={hypeLevel}
+        maxHypeLevel={MAX_HYPE_LEVEL}
+        isCelebrationModeActive={isCelebrationModeActive}
+        isScrolled={isScrolled}
       />
       
+      {/* Desktop Navigation */}
+      {!activeMovieId && !activeCelebrityId && !activePostId && (
+        <div className="hidden sm:block bg-slate-900 border-b border-slate-700/50">
+           <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-center">
+              <div className="flex items-center space-x-2 bg-slate-800/50 p-1 rounded-lg">
+                 {navItems.map(item => (
+                    <button key={item.id} onClick={() => setActiveView(item.id)} className={getDesktopTabStyle(item.id)}>
+                        {item.label}
+                    </button>
+                 ))}
+              </div>
+           </nav>
+        </div>
+      )}
+
       {renderActivePage()}
+      
+      <BottomNavBar 
+        activeView={activeView}
+        setActiveView={setActiveView}
+        navItems={navItems}
+      />
       
       {isUnfanModalOpen && suggestionToUnfan && (
         <Modal
@@ -1185,19 +1329,6 @@ const App: React.FC = () => {
         >
           <p>Are you sure you want to un-fan <strong className="text-purple-300">{suggestionToUnfan.name}</strong>?</p>
         </Modal>
-      )}
-
-      {activePost && (
-        <ContentModal 
-          post={activePost}
-          onClose={() => setActivePost(null)}
-          onReaction={handleReaction}
-          onFanzSay={handleFanzSay}
-          onRatePost={handleRatePost}
-          currentUserAvatar={userProfile.avatar}
-          onViewMoviePage={handleViewMoviePage}
-          onViewCelebrityPage={handleViewCelebrityPage}
-        />
       )}
     </>
   );

@@ -143,7 +143,7 @@ const ApiKeysView: React.FC = () => {
         <div>
           <h3 className="text-lg font-bold text-white">{service.name}</h3>
           <p className="text-sm text-slate-400 mt-1 max-w-md">{service.description}</p>
-          <div className="mt-3 flex items-center gap-4 text-xs">
+          <div className="mt-3 flex items-center flex-wrap gap-4 text-xs">
             <span className="bg-slate-600 text-slate-200 font-mono px-2 py-1 rounded-md">{maskApiKey(config.apiKey)}</span>
             <span className="bg-teal-500/20 text-teal-300 font-semibold px-2 py-1 rounded-full">{config.model}</span>
           </div>

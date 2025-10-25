@@ -13,9 +13,11 @@ interface MovieHeroProps {
   hypeCount: number;
   totalHypes: number;
   onHype: () => void;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }
 
-const MovieHero: React.FC<MovieHeroProps> = ({ title, posterUrl, heroImageUrl, rating, genres, trailerUrl, movieId, hypeCount, totalHypes, onHype }) => {
+const MovieHero: React.FC<MovieHeroProps> = ({ title, posterUrl, heroImageUrl, rating, genres, trailerUrl, movieId, hypeCount, totalHypes, onHype, isFavorite, onToggleFavorite }) => {
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
 
   const getYouTubeVideoId = (url: string): string | null => {
@@ -76,9 +78,14 @@ const MovieHero: React.FC<MovieHeroProps> = ({ title, posterUrl, heroImageUrl, r
                 </button>
               )}
               <div className="flex items-center gap-2">
-                <button className="bg-slate-700/50 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-full transition duration-300 flex items-center space-x-2 backdrop-blur-sm">
-                  <span className="material-symbols-outlined text-rose-400">favorite_border</span>
-                  <span>Favorite movie</span>
+                <button
+                  onClick={onToggleFavorite}
+                  className="bg-slate-700/50 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-full transition duration-300 flex items-center space-x-2 backdrop-blur-sm"
+                >
+                  <span className="material-symbols-outlined text-rose-400">
+                    {isFavorite ? 'favorite' : 'favorite_border'}
+                  </span>
+                  <span>{isFavorite ? 'Favorited' : 'Favorite movie'}</span>
                 </button>
                 <div className="relative group">
                   <button 

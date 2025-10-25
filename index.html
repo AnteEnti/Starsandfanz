@@ -14,6 +14,7 @@
     <style>
       body {
         font-family: 'Anek Telugu', sans-serif;
+        transition: background 0.5s ease-in-out;
       }
       /* For hiding scrollbar in suggestion carousel */
       .scrollbar-hide::-webkit-scrollbar {
@@ -240,6 +241,92 @@
       .animate-rattle {
         animation: rattle 1s ease-in-out forwards;
       }
+
+      /* Love Reaction Pulse */
+      @keyframes love-pulse {
+          0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7), 0 0 0 0 rgba(244, 63, 94, 0.7) inset; }
+          70% { box-shadow: 0 0 0 10px rgba(244, 63, 94, 0), 0 0 0 5px rgba(244, 63, 94, 0) inset; }
+          100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0), 0 0 0 0 rgba(244, 63, 94, 0) inset; }
+      }
+      .animate-love-pulse {
+          animation: love-pulse 1s ease-out;
+      }
+
+      /* Hype Meter Celebration Mode */
+      @keyframes celebration-gradient {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+      }
+      body.celebration-mode {
+          background: linear-gradient(-45deg, #1e293b, #4c1d95, #1e293b, #c026d3);
+          background-size: 400% 400%;
+          animation: celebration-gradient 15s ease infinite;
+      }
+
+      /* Heart fill animation */
+      .heart-wrap {
+        cursor: pointer;
+        filter: drop-shadow(0px 10px 10px rgba(174, 196, 238, 0.5));
+      }
+      .heart {
+        position: relative;
+        --dim-x: 28px;
+        --dim-y: 25px;
+        --curve-height: 10px;
+        height: var(--dim-y);
+        width: var(--dim-x);
+        overflow: hidden;
+        clip-path: url(#myHeartPath);
+        background-image: radial-gradient(#c9d8f5 60%, #afc4ee);
+      }
+      .tank {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 0;
+        width: var(--dim-x);
+        background-color: #f43f5e; /* Solid red fill */
+        transition: height 0.4s ease-in-out;
+      }
+      .curve {
+        position: absolute;
+        bottom: 0; /* Animated */
+        left: 0;
+        width: 100%;
+        height: var(--curve-height);
+        transition: bottom 0.4s ease-in-out;
+      }
+      
+      .fill-level-0 .tank { height: 0%; }
+      .fill-level-0 .curve { bottom: 0%; }
+      .fill-level-1 .tank { height: 33%; }
+      .fill-level-1 .curve { bottom: 33%; }
+      .fill-level-2 .tank { height: 66%; }
+      .fill-level-2 .curve { bottom: 66%; }
+      .fill-level-3 .tank { height: 100%; }
+      .fill-level-3 .curve { bottom: 100%; }
+
+      .curve use {
+        animation: move-heart-wave 2s cubic-bezier(.55,.5,.45,.5) infinite;
+      }
+      .heart.is-full .curve use {
+        animation-play-state: paused;
+      }
+      .curve use:nth-child(1) {
+        animation-duration: 3s;
+      }
+      .curve use:nth-child(2) {
+        animation-duration: 4s;
+      }
+      .curve use:nth-child(3) {
+        animation-duration: 2s;
+      }
+      @keyframes move-heart-wave {
+        0% { transform: translateX(-45px); }
+        100% { transform: translateX(42px); }
+      }
     </style>
   <script type="importmap">
 {
@@ -254,6 +341,13 @@
 </head>
   <body class="bg-slate-900 text-white">
     <div id="root"></div>
+    <svg width="0" height="0">
+      <defs>
+        <clipPath id="myHeartPath" clipPathUnits="objectBoundingBox">
+          <path d="M0.5,1 C 0.5,1, 0,0.7, 0,0.3 A 0.25,0.25, 1, 0,1, 0.5,0.3 A 0.25,0.25, 1, 0,1, 1,0.3 C 1,0.7, 0.5,1, 0.5,1 Z"></path>
+        </clipPath>
+      </defs>
+    </svg>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     <script type="module" src="/index.tsx"></script>
   </body>

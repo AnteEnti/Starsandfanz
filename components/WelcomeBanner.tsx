@@ -28,32 +28,29 @@ const AnimatedEmoji: React.FC<{ emoji: string; top: string; left: string; size: 
 
 const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onDismiss, content }) => {
   const [introStep, setIntroStep] = useState<'idle' | 'start' | 'confetti' | 'slogan-animated'>('idle');
-  const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
-  const canvasRef = useCallback((node: HTMLCanvasElement) => {
-    if (node !== null) {
-      setCanvasEl(node);
-    }
-  }, []);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const confettiInstance = useRef<any>(null);
   const [clickedEmoji, setClickedEmoji] = useState<'confetti' | 'whistle' | null>(null);
 
+  // Effect for creating and cleaning up the confetti instance
   useEffect(() => {
-    let creationTimeoutId: ReturnType<typeof setTimeout> | undefined;
-    // Defer confetti creation to prevent race conditions with DOM layout.
-    if (canvasEl && !confettiInstance.current) {
-      creationTimeoutId = setTimeout(() => {
-        if (canvasEl) { // Re-check in case component unmounted before timeout
-            confettiInstance.current = confetti.create(canvasEl, { useWorker: true, resize: true });
-        }
-      }, 0);
+    if (canvasRef.current && !confettiInstance.current) {
+        confettiInstance.current = confetti.create(canvasRef.current, { useWorker: true, resize: true });
     }
 
-    // --- Introductory Animation Sequence ---
-    const startTimer = setTimeout(() => setIntroStep('start'), 500);
+    return () => {
+        if (confettiInstance.current) {
+            confettiInstance.current.reset();
+            confettiInstance.current = null;
+        }
+    };
+  }, []); // Run only on mount and unmount
 
+  // Effect for the introductory animation sequence
+  useEffect(() => {
+    const startTimer = setTimeout(() => setIntroStep('start'), 500);
     const confettiTriggerTimer = setTimeout(() => {
         setIntroStep('confetti');
-        // The creation is deferred, but it will run before this 1.5s timer.
         if (confettiInstance.current) {
              confettiInstance.current({
                 particleCount: 100,
@@ -63,22 +60,14 @@ const WelcomeBanner: React.FC<WelcomeBannerProps> = ({ onDismiss, content }) => 
             });
         }
     }, 1500);
-
     const sloganAnimationTimer = setTimeout(() => setIntroStep('slogan-animated'), 2500);
 
     return () => {
-        if (creationTimeoutId) {
-            clearTimeout(creationTimeoutId);
-        }
         clearTimeout(startTimer);
         clearTimeout(confettiTriggerTimer);
         clearTimeout(sloganAnimationTimer);
-        if (confettiInstance.current) {
-            confettiInstance.current.reset();
-            confettiInstance.current = null;
-        }
     };
-  }, [canvasEl]);
+  }, []); // Run animation sequence only once on mount
 
   const randomInRange = (min: number, max: number) => {
     return Math.random() * (max - min) + min;

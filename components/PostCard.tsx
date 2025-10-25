@@ -1,5 +1,5 @@
 import React, { useRef, useState, useMemo, useEffect, useCallback } from 'react';
-import { Post, Reaction, FanzSay, Person } from '../types';
+import { Post, Reaction, FanzSay, Person, MovieDetails, CelebrityDetails } from '../types';
 import ReactionButton from './ReactionButton';
 import CommentSection from './CommentSection';
 import VideoPlayer from './VideoPlayer';
@@ -7,6 +7,7 @@ import { StarIcon } from './icons';
 import { PostType } from '../PostType';
 import CountdownTimer from './CountdownTimer';
 import FilmographyCarousel from './FilmographyCarousel';
+import FillingHeart from './FillingHeart';
 
 declare const confetti: any;
 
@@ -14,14 +15,68 @@ interface PostCardProps {
   post: Post;
   onReaction: (postId: string, reactionId: string) => void;
   onFanzSay: (postId: string, fanzSayId: string) => void;
-  onRatePost: (postId: string, rating: number) => void;
   currentUserAvatar: string;
   onViewFullPost: (post: Post) => void;
   onViewMoviePage: (movieId: string) => void;
   onViewCelebrityPage: (celebrityId: string) => void;
+  moviesMap: Map<string, MovieDetails>;
+  celebritiesMap: Map<string, CelebrityDetails>;
 }
 
-const CONTENT_TRUNCATE_LENGTH = 300;
+const getPostCardStyle = (type: PostType) => {
+  let bgClass = 'bg-slate-800';
+  let accentColor = 'border-slate-700';
+  switch(type) {
+    case PostType.Awards:
+      bgClass = 'bg-gradient-to-br from-amber-500/10 via-slate-800 to-slate-800';
+      accentColor = 'border-amber-400/40';
+      break;
+    case PostType.Trailer:
+      bgClass = 'bg-gradient-to-br from-indigo-500/10 via-slate-800 to-slate-800';
+      accentColor = 'border-indigo-400/40';
+      break;
+    case PostType.Birthday:
+    case PostType.Anniversary:
+      bgClass = 'bg-gradient-to-br from-rose-500/10 via-slate-800 to-slate-800';
+      accentColor = 'border-rose-400/40';
+      break;
+    case PostType.ProjectAnnouncement:
+      bgClass = 'bg-gradient-to-br from-yellow-400/10 via-slate-800 to-slate-800';
+      accentColor = 'border-yellow-300/40';
+      break;
+    case PostType.BoxOffice:
+      bgClass = 'bg-gradient-to-br from-green-500/10 via-slate-800 to-slate-800';
+      accentColor = 'border-green-400/40';
+      break;
+    case PostType.Trivia:
+      bgClass = 'bg-gradient-to-br from-cyan-500/10 via-slate-800 to-slate-800';
+      accentColor = 'border-cyan-400/40';
+      break;
+    case PostType.MovieDetails:
+    case PostType.CharacterIntroduction:
+      bgClass = 'bg-gradient-to-br from-sky-500/10 via-slate-800 to-slate-800';
+      accentColor = 'border-sky-400/40';
+      break;
+    case PostType.Celebrity:
+      bgClass = 'bg-gradient-to-br from-teal-500/10 via-slate-800 to-slate-800';
+      accentColor = 'border-teal-400/40';
+      break;
+    case PostType.Countdown:
+      bgClass = 'bg-gradient-to-br from-purple-500/10 via-slate-800 to-slate-800';
+      accentColor = 'border-purple-400/40';
+      break;
+    case PostType.Filmography:
+      bgClass = 'bg-gradient-to-br from-slate-500/10 via-slate-800 to-slate-800';
+      accentColor = 'border-slate-400/40';
+      break;
+    default:
+      bgClass = 'bg-slate-800';
+      accentColor = 'border-slate-700';
+      break;
+  }
+  return { bgClass, accentColor };
+};
+
 
 const AnimatedCommentTeaser: React.FC<{topComments: FanzSay[], totalCount: number}> = ({ topComments, totalCount }) => (
     <div className="space-y-2 mt-3 cursor-pointer group">
@@ -47,87 +102,180 @@ const AnimatedCommentTeaser: React.FC<{topComments: FanzSay[], totalCount: numbe
     </div>
 );
 
-const StarRating: React.FC<{
-    rating: { average: number; count: number };
-    onRate: (rating: number) => void;
-}> = ({ rating, onRate }) => {
-    const [userRating, setUserRating] = useState<number | null>(null);
-    const [hoverRating, setHoverRating] = useState<number | null>(null);
-
-    const handleRatingClick = (newRating: number) => {
-        if (userRating === null) { // Allow rating only once
-            setUserRating(newRating);
-            onRate(newRating);
-        }
-    };
-
-    const displayRating = hoverRating ?? userRating ?? rating.average;
-
-    return (
-        <div className="flex flex-col items-center gap-1" onMouseLeave={() => setHoverRating(null)}>
-            <div className="flex items-center">
-                {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                        key={star}
-                        onClick={() => handleRatingClick(star)}
-                        onMouseEnter={() => userRating === null && setHoverRating(star)}
-                        disabled={userRating !== null}
-                        className={`text-2xl transition-all duration-150 ${userRating === null ? 'cursor-pointer' : 'cursor-default'}`}
-                        aria-label={`Rate ${star} star`}
-                    >
-                        <StarIcon className={star <= displayRating ? 'text-amber-400' : 'text-slate-600'} />
-                    </button>
-                ))}
-            </div>
-            <p className="text-xs text-slate-400">
-                {rating.average.toFixed(1)}/5 ({rating.count.toLocaleString()} ratings)
-            </p>
-        </div>
-    );
-};
-
-
-const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, onRatePost, currentUserAvatar, onViewFullPost, onViewMoviePage, onViewCelebrityPage }) => {
-  const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
-  const canvasRef = useCallback((node: HTMLCanvasElement) => {
-    if (node !== null) {
-      setCanvasEl(node);
-    }
-  }, []);
-  const contentRef = useRef<HTMLDivElement>(null);
+const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, currentUserAvatar, onViewFullPost, onViewMoviePage, onViewCelebrityPage, moviesMap, celebritiesMap }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const [animatingReaction, setAnimatingReaction] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
   const [animatingFanzSayId, setAnimatingFanzSayId] = useState<string | null>(null);
   const [isCommentSectionVisible, setIsCommentSectionVisible] = useState(false);
   const confettiClickCounter = useRef(0);
   const confettiInstance = useRef<any>(null);
+  const [loveClickCount, setLoveClickCount] = useState(0);
+
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  const contentRef = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    if (canvasEl && !confettiInstance.current) {
-      // Defer confetti creation to ensure canvas is fully rendered and sized,
-      // preventing getBoundingClientRect errors on a not-yet-laid-out element.
-      timeoutId = setTimeout(() => {
-        if (canvasEl) { // Re-check in case component unmounted before timeout
-          confettiInstance.current = confetti.create(canvasEl, {
+    // Reset state for new content
+    setIsExpanded(false);
+    setIsOverflowing(false);
+
+    const checkOverflow = () => {
+      const element = contentRef.current;
+      if (element) {
+        // With line-clamp applied, check if content is taller than its visible area
+        if (element.scrollHeight > element.clientHeight) {
+          setIsOverflowing(true);
+        }
+      }
+    };
+    // Use a timeout to ensure DOM has updated with the new content and styles
+    const timer = setTimeout(checkOverflow, 100);
+    return () => clearTimeout(timer);
+  }, [post.content]);
+
+  const authorInfo = useMemo(() => {
+    const defaultAuthor = {
+      avatar: post.avatar,
+      name: post.author,
+      subtitle: post.timestamp,
+      isMovie: false,
+    };
+
+    let info = { ...defaultAuthor };
+    let primarySubtitle = '';
+
+    const linkedMovieId = post.linkedMovieIds?.[0];
+    const linkedCelebrityId = post.linkedCelebrityIds?.[0];
+    const movie = linkedMovieId ? moviesMap.get(linkedMovieId) : undefined;
+    const celebrity = linkedCelebrityId ? celebritiesMap.get(linkedCelebrityId) : undefined;
+
+    switch (post.type) {
+      case PostType.MovieDetails:
+        if (post.movieDetails) {
+          info.avatar = post.movieDetails.posterUrl;
+          info.name = post.movieDetails.title;
+          primarySubtitle = post.movieDetails.genres.slice(0, 2).join(' • ');
+          info.isMovie = true;
+        }
+        break;
+      
+      case PostType.ProjectAnnouncement:
+        if (post.projectAnnouncementDetails) {
+          info.avatar = post.projectAnnouncementDetails.posterUrl;
+          info.name = post.projectAnnouncementDetails.title;
+          primarySubtitle = `Project ${post.projectAnnouncementDetails.status}`;
+          info.isMovie = true;
+        }
+        break;
+
+      case PostType.Celebrity:
+        if (post.celebrityDetails) {
+          info.avatar = post.celebrityDetails.imageUrl;
+          info.name = post.celebrityDetails.name;
+          primarySubtitle = post.celebrityDetails.knownFor;
+        }
+        break;
+
+      case PostType.CharacterIntroduction:
+        if (post.characterDetails && movie) {
+            const characterName = post.characterDetails.name;
+            const actorInfo = movie.fullCast.find(p => p.role === characterName);
+            if(actorInfo) {
+                const actorCelebrity = actorInfo.linkedCelebrityId ? celebritiesMap.get(actorInfo.linkedCelebrityId) : null;
+                info.avatar = actorCelebrity?.imageUrl || actorInfo.imageUrl;
+                info.name = actorInfo.name;
+                primarySubtitle = `as ${characterName}`;
+            }
+        }
+        break;
+
+      case PostType.Birthday:
+      case PostType.Trivia:
+      case PostType.Filmography:
+        if (celebrity) {
+          info.avatar = celebrity.imageUrl;
+          info.name = celebrity.name;
+          primarySubtitle = post.type === PostType.Birthday ? 'Birthday Celebration' : `${post.type} Spotlight`;
+        }
+        break;
+
+      case PostType.Trailer:
+      case PostType.Anniversary:
+      case PostType.Countdown:
+      case PostType.BoxOffice:
+        if (movie) {
+          info.avatar = movie.posterUrl;
+          info.name = movie.title;
+          primarySubtitle = post.type === PostType.BoxOffice ? 'Box Office Report' : `${post.type}`;
+          info.isMovie = true;
+        } else if (post.type === PostType.BoxOffice && post.boxOfficeDetails) {
+            info.name = post.boxOfficeDetails.title;
+            primarySubtitle = 'Box Office Report';
+            info.isMovie = true;
+        }
+        break;
+        
+      case PostType.Awards:
+        const awardFor = post.awardDetails?.awardFor || '';
+        if (celebrity) {
+            info.avatar = celebrity.imageUrl;
+            info.name = celebrity.name;
+            primarySubtitle = `Won for ${awardFor}`;
+        } else if (movie) {
+            info.avatar = movie.posterUrl;
+            info.name = movie.title;
+            primarySubtitle = `Won for ${awardFor}`;
+            info.isMovie = true;
+        }
+        break;
+        
+      default: // For Image, Announcement
+        if (celebrity && !movie) {
+            info.avatar = celebrity.imageUrl;
+            info.name = celebrity.name;
+            primarySubtitle = post.eventDetails?.title || 'Announcement';
+        } else if (movie && !celebrity) {
+            info.avatar = movie.posterUrl;
+            info.name = movie.title;
+            primarySubtitle = post.eventDetails?.title || 'Update';
+            info.isMovie = true;
+        }
+        break;
+    }
+    
+    info.subtitle = primarySubtitle ? `${primarySubtitle} • ${post.timestamp}` : post.timestamp;
+    return info;
+
+  }, [post, moviesMap, celebritiesMap]);
+
+  const loveTooltipText = useMemo(() => {
+    if (loveClickCount >= 3) return "Heart is full! ❤️";
+    if (loveClickCount > 0) return "Keep clicking!";
+    return "Fill the heart!";
+  }, [loveClickCount]);
+
+
+  useEffect(() => {
+    // This effect handles the creation and cleanup of the confetti instance.
+    // It runs only once when the component mounts.
+    if (canvasRef.current && !confettiInstance.current) {
+        confettiInstance.current = confetti.create(canvasRef.current, {
             resize: true,
             useWorker: true,
             disableForReducedMotion: true,
-          });
-        }
-      }, 0);
+        });
     }
-    
+
+    // Cleanup function to reset confetti when the component unmounts.
     return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      if (confettiInstance.current) {
-        confettiInstance.current.reset();
-        confettiInstance.current = null;
-      }
+        if (confettiInstance.current) {
+            confettiInstance.current.reset();
+            confettiInstance.current = null;
+        }
     };
-  }, [canvasEl]);
+  }, []); // Empty dependency array ensures this runs only on mount and unmount.
 
   const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
@@ -186,7 +334,17 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, onRate
 
     onReaction(post.id, reactionId);
 
-    if (reaction.emoji === '🎉') {
+    if (reaction.id === 'love') {
+        const newCount = Math.min(loveClickCount + 1, 3);
+        setLoveClickCount(newCount);
+        // On the 3rd click, trigger the pulse
+        if (newCount === 3 && cardRef.current) {
+            cardRef.current.classList.add('animate-love-pulse');
+            setTimeout(() => {
+                cardRef.current?.classList.remove('animate-love-pulse');
+            }, 1000); // Duration of the animation
+        }
+    } else if (reaction.emoji === '🎉') {
       confettiClickCounter.current += 1;
       if (confettiClickCounter.current > 10) {
         makeItRain();
@@ -194,8 +352,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, onRate
       } else {
         triggerRandomConfetti();
       }
-    }
-    if (reaction.emoji === '🥳') {
+    } else if (reaction.emoji === '🥳') {
       setAnimatingReaction('🥳');
       setTimeout(() => setAnimatingReaction(null), 1000); // Duration of the animation
     }
@@ -209,8 +366,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, onRate
     }, 600); // Animation duration should match CSS
   };
   
-  const isLongContent = post.content.length > CONTENT_TRUNCATE_LENGTH;
-
   const renderPostContent = () => {
     // General purpose image takes precedence if it's not a specific visual post type
     if (post.imageUrl && ![PostType.Trailer, PostType.MovieDetails, PostType.CharacterIntroduction, PostType.ProjectAnnouncement, PostType.Celebrity, PostType.Image, PostType.Anniversary].includes(post.type)) {
@@ -234,7 +389,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, onRate
         if (!post.movieDetails) return null;
         const { posterUrl, title, rating, synopsis, director, cast, genres } = post.movieDetails;
         return (
-            <button onClick={() => onViewMoviePage(post.movieDetails!.id)} className="w-full text-left transition-transform duration-300 hover:scale-[1.02]">
+            <button onClick={() => onViewFullPost(post)} className="w-full text-left transition-transform duration-300 hover:scale-[1.02]">
               <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden">
                 <img src={posterUrl} alt={`${title} poster`} className="w-full md:w-1/3 object-cover" />
                 <div className="p-5 flex-1">
@@ -273,13 +428,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, onRate
       
       case PostType.CharacterIntroduction: {
         if (!post.characterDetails) return null;
-        const { name, imageUrl, role, bio, keyTraits, firstAppearance, linkedCelebrityId } = post.characterDetails;
-        const Wrapper = linkedCelebrityId ? 'button' as const : 'div' as const;
+        const { name, imageUrl, role, bio, keyTraits, firstAppearance } = post.characterDetails;
         return (
-          <Wrapper 
-            onClick={() => linkedCelebrityId && onViewCelebrityPage(linkedCelebrityId)} 
-            className={`w-full text-left ${linkedCelebrityId ? 'transition-transform duration-300 hover:scale-[1.02]' : ''}`}
-          >
+          <button onClick={() => onViewFullPost(post)} className="w-full text-left transition-transform duration-300 hover:scale-[1.02]">
             <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden">
               <img src={imageUrl} alt={`${name} portrait`} className="w-full md:w-1/3 object-cover object-top" />
               <div className="p-5 flex-1">
@@ -303,14 +454,14 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, onRate
                 </div>
               </div>
             </div>
-          </Wrapper>
+          </button>
         );
       }
        case PostType.Celebrity: {
         if (!post.celebrityDetails) return null;
-        const { id, name, imageUrl, knownFor, bio, notableWorks, birthDate } = post.celebrityDetails;
+        const { name, imageUrl, knownFor, bio, notableWorks, birthDate } = post.celebrityDetails;
         return (
-          <button onClick={() => onViewCelebrityPage(id)} className="w-full text-left transition-transform duration-300 hover:scale-[1.02]">
+          <button onClick={() => onViewFullPost(post)} className="w-full text-left transition-transform duration-300 hover:scale-[1.02]">
             <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden">
               <img src={imageUrl} alt={`${name} portrait`} className="w-full md:w-1/3 object-cover object-top" />
               <div className="p-5 flex-1">
@@ -376,42 +527,44 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, onRate
         const castNames = cast.slice(0, 3).map(p => p.name).join(', ');
 
         return (
-          <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden border-2 border-yellow-400/30">
-            <div className="relative w-full md:w-1/3">
-              <img src={posterUrl} alt={`${title} poster`} className="w-full object-cover" />
-              <div className="absolute top-2 left-2 bg-yellow-400 text-slate-900 font-bold px-2 py-1 rounded-md text-xs uppercase tracking-wider">
-                {status}
+          <button onClick={() => onViewFullPost(post)} className="w-full text-left transition-transform duration-300 hover:scale-[1.02]">
+            <div className="flex flex-col md:flex-row gap-5 bg-slate-700/50 rounded-lg overflow-hidden border-2 border-yellow-400/30">
+              <div className="relative w-full md:w-1/3">
+                <img src={posterUrl} alt={`${title} poster`} className="w-full object-cover" />
+                <div className="absolute top-2 left-2 bg-yellow-400 text-slate-900 font-bold px-2 py-1 rounded-md text-xs uppercase tracking-wider">
+                  {status}
+                </div>
+              </div>
+              <div className="p-5 flex-1">
+                {relationship && (
+                  <button 
+                      onClick={(e) => { e.stopPropagation(); onViewMoviePage(relationship.relatedMovieId); }}
+                      className="text-xs font-bold text-cyan-300 bg-cyan-500/20 px-2 py-1 rounded-full mb-2 hover:bg-cyan-500/40"
+                  >
+                      {relationship.type}
+                  </button>
+                )}
+                <p className="text-yellow-300 font-semibold mb-1">{expectedRelease}</p>
+                <h4 className="text-2xl font-bold text-white">{title}</h4>
+                <p className="text-sm text-slate-300 mt-2 mb-4 italic">"{logline}"</p>
+                
+                <div className="space-y-3 text-sm border-t border-slate-600 pt-3">
+                  {director && (
+                    <div>
+                      <strong className="text-purple-300">Director:</strong>
+                      <span className="text-slate-200 ml-2">{director.name}</span>
+                    </div>
+                  )}
+                  {cast.length > 0 && (
+                    <div>
+                      <strong className="text-purple-300">Starring:</strong>
+                      <span className="text-slate-200 ml-2">{castNames}{cast.length > 3 ? '...' : ''}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="p-5 flex-1">
-              {relationship && (
-                 <button 
-                    onClick={() => onViewMoviePage(relationship.relatedMovieId)}
-                    className="text-xs font-bold text-cyan-300 bg-cyan-500/20 px-2 py-1 rounded-full mb-2 hover:bg-cyan-500/40"
-                 >
-                    {relationship.type}
-                </button>
-              )}
-              <p className="text-yellow-300 font-semibold mb-1">{expectedRelease}</p>
-              <h4 className="text-2xl font-bold text-white">{title}</h4>
-              <p className="text-sm text-slate-300 mt-2 mb-4 italic">"{logline}"</p>
-              
-              <div className="space-y-3 text-sm border-t border-slate-600 pt-3">
-                {director && (
-                  <div>
-                    <strong className="text-purple-300">Director:</strong>
-                    <span className="text-slate-200 ml-2">{director.name}</span>
-                  </div>
-                )}
-                {cast.length > 0 && (
-                  <div>
-                    <strong className="text-purple-300">Starring:</strong>
-                    <span className="text-slate-200 ml-2">{castNames}{cast.length > 3 ? '...' : ''}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          </button>
         );
       }
       case PostType.BoxOffice: {
@@ -555,44 +708,45 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, onRate
     PostType.Filmography, PostType.ProjectAnnouncement, PostType.Celebrity,
     PostType.BoxOffice, PostType.Trivia,
   ].includes(post.type);
+  const avatarShapeClass = authorInfo.isMovie ? 'rounded-md' : 'rounded-full';
+  const { bgClass, accentColor } = getPostCardStyle(post.type);
 
   return (
-    <div className="relative rounded-[14px] bg-gradient-to-r from-orange-400 via-fuchsia-500 to-indigo-500 p-[2px] animate-gradient-border">
-      <div id={`post-card-${post.id}`} className="relative bg-slate-800 rounded-xl shadow-2xl overflow-hidden w-full max-h-[780px] flex flex-col">
+    <div 
+      id={`post-card-${post.id}`} 
+      ref={cardRef}
+      className={`relative ${bgClass} rounded-xl shadow-2xl overflow-hidden w-full flex flex-col`}
+    >
         <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none z-20" aria-hidden="true"></canvas>
         
-        {/* Static Header */}
+        {/* Header */}
         <div className="p-5 flex-shrink-0">
           {hasEventHeader && renderEventHeader()}
           <div className="flex items-center mt-4">
-            <img className="h-12 w-12 rounded-full border-2 border-slate-600" src={post.avatar} alt={post.author} />
+            <img className={`h-12 w-12 ${avatarShapeClass} border-2 border-slate-600 object-cover`} src={authorInfo.avatar} alt={authorInfo.name} />
             <div className="ml-4">
-              <div className="text-lg font-semibold text-white">{post.author}</div>
-              <div className="text-sm text-slate-400">{post.timestamp}</div>
+              <div className="text-lg font-semibold text-white">{authorInfo.name}</div>
+              <div className="text-sm text-slate-400">{authorInfo.subtitle}</div>
             </div>
           </div>
         </div>
         
-        {/* Clipped Body */}
-        <div ref={contentRef} className="flex-1 overflow-hidden px-5 pb-5 relative">
-          <p className="text-slate-300 mb-4 whitespace-pre-wrap">
-            {isLongContent && !isExpanded
-              ? `${post.content.substring(0, CONTENT_TRUNCATE_LENGTH)}...`
-              : post.content}
-            {isLongContent && (
-              <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="inline bg-transparent border-none p-0 text-purple-400 hover:text-purple-300 font-semibold text-sm ml-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-800 rounded"
-                aria-expanded={isExpanded}
-              >
-                {isExpanded ? 'Read Less' : 'Read More'}
-              </button>
-            )}
-          </p>
+        {/* Body */}
+        <div className="flex-1 overflow-hidden px-5 pb-5 relative">
+          <div className={!isExpanded ? 'max-h-32 overflow-hidden' : ''}>
+              <p ref={contentRef} className="text-slate-300 mb-4 whitespace-pre-wrap">
+                {post.content}
+              </p>
+          </div>
+          {isOverflowing && (
+            <button onClick={() => setIsExpanded(!isExpanded)} className="text-purple-400 font-semibold hover:underline text-sm relative -top-3">
+              {isExpanded ? 'Read Less' : 'Read More...'}
+            </button>
+          )}
           {renderPostContent()}
         </div>
 
-        {/* Static Countdown Footer (special case) */}
+        {/* Countdown Footer (special case) */}
         {post.type === PostType.Countdown && post.countdownDetails && (
           <div className="px-5 pb-5 flex-shrink-0">
             <a
@@ -608,22 +762,41 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, onRate
           </div>
         )}
 
-        {/* Static Main Footer */}
-        <div className="p-5 flex-shrink-0 border-t border-slate-700 bg-slate-800">
+        {/* Main Footer */}
+        <div className={`p-5 flex-shrink-0 border-t ${accentColor} bg-slate-800/50`}>
           {post.reactionsEnabled !== false && post.reactions && post.reactions.length > 0 && (
-             <div className="flex items-center justify-between pb-3 border-b-2 border-slate-700">
-                <div className="flex items-center justify-start gap-1 sm:gap-2 flex-grow">
-                    {post.reactions.map(reaction => (
-                        <ReactionButton
-                            key={reaction.id}
-                            reaction={reaction}
-                            onClick={(e) => handleReactionClick(e, reaction.id)}
-                            isAnimating={animatingReaction === reaction.emoji}
-                        />
-                    ))}
-                </div>
-                <div className="flex-shrink-0 pl-2">
-                   {post.rating && <StarRating rating={post.rating} onRate={(rating) => onRatePost(post.id, rating)} />}
+             <div className={`pb-3 border-b-2 ${accentColor}`}>
+                <div className="flex items-center justify-start gap-1 sm:gap-2 flex-wrap">
+                    {post.reactions.map(reaction => {
+                       if (reaction.id === 'love') {
+                         return (
+                            <div key={reaction.id} className="relative group flex justify-center">
+                                <button
+                                    onClick={(e) => handleReactionClick(e, reaction.id)}
+                                    className="flex items-center space-x-2 text-slate-400 hover:text-white rounded-full py-2 px-3 transition-all duration-200 ease-in-out transform hover:bg-slate-700"
+                                    aria-label="React with Love"
+                                >
+                                    <FillingHeart fillLevel={loveClickCount} />
+                                    <span className="font-semibold text-sm">{reaction.count.toLocaleString()}</span>
+                                </button>
+                                <div 
+                                  className="absolute bottom-full mb-2 w-max px-3 py-1.5 bg-slate-950 text-white text-xs font-semibold rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                                  role="tooltip"
+                                >
+                                  {loveTooltipText}
+                                </div>
+                            </div>
+                         );
+                       }
+                       return (
+                          <ReactionButton
+                              key={reaction.id}
+                              reaction={reaction}
+                              onClick={(e) => handleReactionClick(e, reaction.id)}
+                              isAnimating={animatingReaction === reaction.emoji}
+                          />
+                       );
+                    })}
                 </div>
             </div>
           )}
@@ -674,17 +847,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, onRate
               </div>
             )
           )}
-          <div className="mt-4">
-            <button 
-              onClick={() => onViewFullPost(post)}
-              className="w-full text-center bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-2 px-4 rounded-full flex items-center justify-center gap-2 transition-all duration-300 hover:scale-105 shadow-lg shadow-amber-500/30"
-            >
-              <span className="material-symbols-outlined text-base">read_more</span>
-              Read More
-            </button>
-          </div>
         </div>
-      </div>
     </div>
   );
 };

@@ -30,8 +30,6 @@ interface DashboardViewProps {
 const DashboardView: React.FC<DashboardViewProps> = ({ posts }) => {
   const totalReactions = useMemo(() =>
     posts.reduce((acc, post) => {
-      // FIX: Correctly sum the `count` property from each Reaction object.
-      // The previous implementation was incorrect for an array of objects.
       const postReactionTotal = post.reactions?.reduce((sum, reaction) => sum + reaction.count, 0) || 0;
       return acc + postReactionTotal;
     }, 0),
@@ -66,5 +64,4 @@ const DashboardView: React.FC<DashboardViewProps> = ({ posts }) => {
   );
 };
 
-// FIX: Corrected typo in export statement from 'employability' to 'DashboardView'.
 export default DashboardView;

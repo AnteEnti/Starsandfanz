@@ -1,37 +1,42 @@
 
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { StarIcon } from './icons';
 import { BannerContent } from '../types';
+import HypeMeter from './HypeMeter';
 
 type ActiveView = 'feed' | 'profile' | 'admin' | 'favorites' | 'about' | 'terms' | 'contact' | 'disclaimer';
 
 interface HeaderProps {
-  activeView: ActiveView;
   setActiveView: (view: ActiveView) => void;
   userAvatar: string;
   favoriteStarAvatars: string[];
-  isAdmin: boolean;
   isBannerVisible: boolean;
   bannerContent?: BannerContent;
   onDismissBanner: () => void;
   onReopenBanner: () => void;
   siteName: string;
   logoUrl: string | null;
+  hypeLevel: number;
+  maxHypeLevel: number;
+  isCelebrationModeActive: boolean;
+  isScrolled: boolean;
 }
 
-// FIX: Changed to a named export to resolve module resolution issues.
 export const Header: React.FC<HeaderProps> = ({ 
-  activeView, 
   setActiveView, 
   userAvatar, 
   favoriteStarAvatars, 
-  isAdmin, 
   isBannerVisible, 
   bannerContent,
   onDismissBanner,
   onReopenBanner,
   siteName,
-  logoUrl
+  logoUrl,
+  hypeLevel,
+  maxHypeLevel,
+  isCelebrationModeActive,
+  isScrolled,
 }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [avatarIndex, setAvatarIndex] = useState(0);
@@ -73,70 +78,39 @@ export const Header: React.FC<HeaderProps> = ({
     }, 500); // Half of the 1s animation duration
 
     return () => clearTimeout(swapTimer);
-  }, [isFlipped, allAvatars]); // Dependency on the memoized avatar list.
-  
-  const navItems: { id: ActiveView; label: string; icon: string }[] = [
-    { id: 'feed', label: 'Feed', icon: 'home' },
-    { id: 'favorites', label: 'Favorites', icon: 'favorite' },
-    { id: 'profile', label: 'Profile', icon: 'person' },
-    ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: 'admin_panel_settings' } as const] : []),
-  ];
-
-  const getDesktopTabStyle = (view: ActiveView) => {
-    const baseStyle = "px-4 py-2 text-sm font-semibold rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-800";
-    if (activeView === view) {
-      return `${baseStyle} bg-purple-600 text-white`;
-    }
-    return `${baseStyle} text-slate-300 hover:bg-slate-700`;
-  };
-  
-  const getMobileTabStyle = (view: ActiveView) => {
-    const baseStyle = "flex flex-col items-center justify-center gap-1 p-2 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900";
-    if (activeView === view) {
-      return `${baseStyle} text-purple-300`;
-    }
-    return `${baseStyle} text-slate-400 hover:bg-slate-700`;
-  }
+  }, [isFlipped, allAvatars]);
 
   return (
     <header className="bg-slate-800/50 backdrop-blur-sm sticky top-0 z-40 shadow-lg animate-fade-in-down">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveView('feed')}>
+        <div className={`flex items-center justify-between transition-all duration-300 ${isScrolled ? 'h-14' : 'h-16'}`}>
+          <div className="flex items-center space-x-3 cursor-pointer min-w-0" onClick={() => setActiveView('feed')}>
             {logoUrl ? (
-              <img src={logoUrl} alt={`${siteName} Logo`} className="h-10 w-auto" />
+              <img src={logoUrl} alt={`${siteName} Logo`} className={`w-auto transition-all duration-300 ${isScrolled ? 'h-8' : 'h-10'}`} />
             ) : (
-              <div className="flex items-center gap-2">
-                <StarIcon className="h-8 w-8 text-purple-400" />
-                <span className="text-2xl font-bold text-white tracking-wider">
+              <div className="flex items-center gap-2 min-w-0">
+                <StarIcon className={`text-purple-400 flex-shrink-0 transition-all duration-300 ${isScrolled ? 'h-7 w-7' : 'h-8 w-8'}`} />
+                <span className={`font-bold text-white tracking-wider truncate transition-all duration-300 ${isScrolled ? 'text-xl' : 'text-2xl'}`}>
                   {siteName}
                 </span>
               </div>
             )}
           </div>
           
-          <div className="hidden sm:flex items-center space-x-2 bg-slate-700/50 p-1 rounded-lg">
-            {navItems.slice(0, 2).map(item => (
-                 <button key={item.id} onClick={() => setActiveView(item.id)} className={getDesktopTabStyle(item.id)}>
-                    {item.label}
-                </button>
-            ))}
+          <div className={`hidden md:flex flex-1 justify-center px-4 transition-opacity duration-300 ${isScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+            <HypeMeter 
+              hypeLevel={hypeLevel} 
+              maxHypeLevel={maxHypeLevel} 
+              isCelebrationModeActive={isCelebrationModeActive}
+            />
           </div>
 
           <div className="flex items-center gap-4">
-             <div className="hidden sm:flex items-center space-x-2 bg-slate-700/50 p-1 rounded-lg">
-                {navItems.slice(2).map(item => (
-                    <button key={item.id} onClick={() => setActiveView(item.id)} className={getDesktopTabStyle(item.id)}>
-                        {item.label}
-                    </button>
-                ))}
-             </div>
-             
-             <div 
-                className="relative h-10 w-10 cursor-pointer" 
+             <button 
+                className={`relative transition-all duration-300 ${isScrolled ? 'h-9 w-9' : 'h-10 w-10'} bg-transparent border-none p-0 cursor-pointer rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-800`}
                 style={{ perspective: '1000px' }}
                 onClick={() => setActiveView('profile')}
-                title="View Profile"
+                aria-label="View Profile"
              >
                 <div 
                     className="relative w-full h-full transition-transform duration-1000" 
@@ -145,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({
                     {/* Front of the card */}
                     <div className="absolute w-full h-full" style={{ backfaceVisibility: 'hidden' }}>
                         <img 
-                            className="h-10 w-10 rounded-full border-2 border-purple-400 object-cover"
+                            className="h-full w-full rounded-full border-2 border-purple-400 object-cover"
                             src={frontAvatar}
                             alt="User profile"
                         />
@@ -153,13 +127,13 @@ export const Header: React.FC<HeaderProps> = ({
                     {/* Back of the card */}
                     <div className="absolute w-full h-full" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
                          <img 
-                            className="h-10 w-10 rounded-full border-2 border-teal-400 object-cover"
+                            className="h-full w-full rounded-full border-2 border-teal-400 object-cover"
                             src={backAvatar}
                             alt="Favorite star"
                         />
                     </div>
                 </div>
-            </div>
+            </button>
           </div>
         </div>
       </div>
@@ -190,16 +164,6 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
          </div>
       )}
-
-      {/* Mobile Navigation */}
-      <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-slate-800/80 backdrop-blur-sm border-t border-slate-700 p-1 z-50 flex justify-around">
-        {navItems.map(item => (
-            <button key={item.id} onClick={() => setActiveView(item.id)} className={getMobileTabStyle(item.id)}>
-                <span className="material-symbols-outlined text-2xl">{item.icon}</span>
-                <span className="text-[10px] font-semibold">{item.label}</span>
-            </button>
-        ))}
-      </nav>
     </header>
   );
 };

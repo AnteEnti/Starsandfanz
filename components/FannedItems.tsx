@@ -6,9 +6,10 @@ interface FannedItemsProps {
   fannedItems: Suggestion[];
   onToggleFan: (suggestionId: string) => void;
   onStartUnfan: (suggestionId: string, suggestionName: string) => void;
+  onViewCelebrityPage: (celebrityId: string) => void;
 }
 
-const FannedItems: React.FC<FannedItemsProps> = ({ fannedItems, onToggleFan, onStartUnfan }) => {
+const FannedItems: React.FC<FannedItemsProps> = ({ fannedItems, onToggleFan, onStartUnfan, onViewCelebrityPage }) => {
   return (
     <section>
       <h2 className="text-2xl font-bold text-white mb-4">Your Fanned Items</h2>
@@ -20,6 +21,7 @@ const FannedItems: React.FC<FannedItemsProps> = ({ fannedItems, onToggleFan, onS
               suggestion={item}
               onToggleFan={onToggleFan}
               onStartUnfan={onStartUnfan}
+              onViewCelebrityPage={onViewCelebrityPage}
             />
           ))}
         </div>

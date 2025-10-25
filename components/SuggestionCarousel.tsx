@@ -21,7 +21,7 @@ const SuggestionCarousel: React.FC<SuggestionCarouselProps> = ({ suggestions, on
   };
 
   return (
-    <div className="mb-6">
+    <div className="mb-6 overflow-hidden">
       <h2 className="text-xl font-bold text-white mb-3">Celebrate Your Star</h2>
       <div className="relative group -mx-4 sm:-mx-6 lg:-mx-8">
         <div 

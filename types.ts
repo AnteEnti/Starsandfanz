@@ -21,11 +21,6 @@ export interface Reaction {
   count: number;
 }
 
-export interface PostRating {
-  average: number;
-  count: number;
-}
-
 export enum SuggestionType {
   Topic = 'Topic',
   Celeb = 'Celebrity',
@@ -184,7 +179,6 @@ export interface Post {
   reactionsEnabled?: boolean;
   fanzSays?: FanzSay[];
   fanzSaysEnabled?: boolean;
-  rating?: PostRating;
   linkedMovieIds?: string[];
   linkedCelebrityIds?: string[];
   metaDescription?: string;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Suggestion, Post, UserProfileData } from '../types';
+import { Suggestion, Post, UserProfileData, MovieDetails, CelebrityDetails } from '../types';
 import PostCard from './PostCard';
 import ProfileHeader from './ProfileHeader';
 import FannedItems from './FannedItems';
@@ -14,7 +14,6 @@ interface UserProfileProps {
   onStartUnfan: (suggestionId: string, suggestionName: string) => void;
   onReaction: (postId: string, reactionId: string) => void;
   onFanzSay: (postId: string, fanzSayId: string) => void;
-  onRatePost: (postId: string, rating: number) => void;
   onUpdateProfile: (newProfile: UserProfileData) => void;
   favoriteOptions: {
     genres: string[];
@@ -24,6 +23,8 @@ interface UserProfileProps {
   onViewFullPost: (post: Post) => void;
   onViewMoviePage: (movieId: string) => void;
   onViewCelebrityPage: (celebrityId: string) => void;
+  moviesMap: Map<string, MovieDetails>;
+  celebritiesMap: Map<string, CelebrityDetails>;
 }
 
 const UserProfile: React.FC<UserProfileProps> = ({
@@ -34,12 +35,13 @@ const UserProfile: React.FC<UserProfileProps> = ({
   onStartUnfan,
   onReaction,
   onFanzSay,
-  onRatePost,
   onUpdateProfile,
   favoriteOptions,
   onViewFullPost,
   onViewMoviePage,
-  onViewCelebrityPage
+  onViewCelebrityPage,
+  moviesMap,
+  celebritiesMap,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
 
@@ -81,6 +83,7 @@ const UserProfile: React.FC<UserProfileProps> = ({
         fannedItems={fannedItems}
         onToggleFan={onToggleFan}
         onStartUnfan={onStartUnfan}
+        onViewCelebrityPage={onViewCelebrityPage}
       />
 
       <section>
@@ -93,11 +96,12 @@ const UserProfile: React.FC<UserProfileProps> = ({
                 post={post}
                 onReaction={onReaction}
                 onFanzSay={onFanzSay}
-                onRatePost={onRatePost}
                 currentUserAvatar={user.avatar}
                 onViewFullPost={onViewFullPost}
                 onViewMoviePage={onViewMoviePage}
                 onViewCelebrityPage={onViewCelebrityPage}
+                moviesMap={moviesMap}
+                celebritiesMap={celebritiesMap}
               />
             ))}
           </div>
