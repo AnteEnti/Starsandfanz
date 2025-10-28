@@ -28,9 +28,10 @@ interface AdminPageProps {
   allCelebrities: { id: string, name: string }[];
   siteSettings: SiteSettings;
   onUpdateSiteSettings: (newSettings: SiteSettings) => void;
+  isAdmin: boolean;
 }
 
-const AdminPage: React.FC<AdminPageProps> = ({ posts, onAddPost, onUpdatePost, onDeletePost, banners, onUpdateBanners, allMovies, allCelebrities, siteSettings, onUpdateSiteSettings }) => {
+const AdminPage: React.FC<AdminPageProps> = ({ posts, onAddPost, onUpdatePost, onDeletePost, banners, onUpdateBanners, allMovies, allCelebrities, siteSettings, onUpdateSiteSettings, isAdmin }) => {
   const [activeView, setActiveView] = useState<AdminView>('dashboard');
   
   const [postManagementSubView, setPostManagementSubView] = useState<'list' | 'form'>('list');
@@ -97,7 +98,12 @@ const AdminPage: React.FC<AdminPageProps> = ({ posts, onAddPost, onUpdatePost, o
       case 'media':
         return <MediaView />;
       case 'users':
-        return <UserManagementView />;
+        return isAdmin ? <UserManagementView /> : (
+            <div className="p-6 text-center">
+                <h2 className="text-xl font-bold text-rose-400">Access Denied</h2>
+                <p className="text-slate-300 mt-2">You do not have sufficient permissions to view this page.</p>
+            </div>
+        );
       case 'actions':
         return <ActionsView posts={posts} onCreatePost={handleCreatePostFromTemplate} />;
       case 'ai_copilot':
@@ -133,8 +139,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ posts, onAddPost, onUpdatePost, o
 
   return (
     <div className="flex flex-col md:flex-row gap-6 items-start">
-      <AdminSidebar activeView={activeView} setActiveView={setActiveView} />
-      <div className="flex-1 w-full bg-slate-800 rounded-lg shadow-xl">
+      <AdminSidebar activeView={activeView} setActiveView={setActiveView} isAdmin={isAdmin} />
+      <div className="flex-1 w-full bg-slate-800 rounded-lg shadow-xl min-w-0">
         {renderContent()}
       </div>
     </div>

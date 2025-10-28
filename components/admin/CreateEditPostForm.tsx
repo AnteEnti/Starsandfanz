@@ -175,6 +175,17 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
         setFormData((prev: any) => ({ ...prev, [name]: parsedValue }));
     }
   };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev: any) => ({ ...prev, imageUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
   
   const handleFilmographyChange = (index: number, field: keyof Omit<FilmographyItem, 'id'>, value: string | number) => {
     const updatedFilmography = [...formData.filmographyDetails];
@@ -254,7 +265,12 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
   
   const handleReactionChange = (index: number, field: keyof Omit<Reaction, 'id'>, value: string | number) => {
     const updatedReactions = [...(formData.reactions || [])];
-    updatedReactions[index] = { ...updatedReactions[index], [field]: value };
+    const newReaction = { ...updatedReactions[index], [field]: value };
+    // Update ID based on emoji for uniqueness, but only if the field being changed is the emoji
+    if (field === 'emoji' && typeof value === 'string') {
+        newReaction.id = value;
+    }
+    updatedReactions[index] = newReaction;
     setFormData({ ...formData, reactions: updatedReactions });
   };
 
@@ -354,9 +370,27 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
       case PostType.Image:
       case PostType.Anniversary:
         return <>
-          <FormInput label="Event Title" name="eventDetails.title" value={formData.eventDetails?.title || ''} onChange={handleInputChange} />
-          {postType === PostType.Anniversary && <FormInput label="Event Subtitle" name="eventDetails.subtitle" value={formData.eventDetails?.subtitle || ''} onChange={handleInputChange} />}
-          <FormInput label="Image URL" name="imageUrl" value={formData.imageUrl || ''} onChange={handleInputChange} required />
+          <FormInput label="Event Title" name="eventDetails.title" value={formData.eventDetails?.title || ''} onChange={handleInputChange} required/>
+          <FormInput label="Event Subtitle (Optional)" name="eventDetails.subtitle" value={formData.eventDetails?.subtitle || ''} onChange={handleInputChange} />
+          <div className="flex items-end gap-4">
+              <div className="flex-1">
+                  <FormInput label="Image URL" name="imageUrl" value={formData.imageUrl || ''} onChange={handleInputChange} required />
+              </div>
+              <div>
+                  <label htmlFor="image-upload" className="cursor-pointer bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-4 rounded-md transition duration-300">
+                      Upload Image
+                  </label>
+                  <input id="image-upload" type="file" className="hidden" accept="image/*" onChange={handleFileUpload} />
+              </div>
+          </div>
+          {formData.imageUrl && (
+            <div>
+              <p className="text-sm font-medium text-slate-300 mb-1">Image Preview</p>
+              <div className="bg-slate-900/50 rounded-lg p-2 border border-slate-600">
+                <img src={formData.imageUrl} alt="Preview" className="max-h-60 w-auto mx-auto rounded" />
+              </div>
+            </div>
+          )}
         </>;
       case PostType.ProjectAnnouncement:
         const pa = formData.projectAnnouncementDetails || {};
@@ -515,8 +549,8 @@ const CreateEditPostForm: React.FC<CreateEditPostFormProps> = ({ onSave, onCance
   };
 
   const renderLinksSection = () => {
-    const canLinkMovies = [PostType.ProjectAnnouncement, PostType.Trailer, PostType.CharacterIntroduction, PostType.Countdown, PostType.Announcement, PostType.Awards, PostType.Anniversary, PostType.BoxOffice].includes(postType);
-    const canLinkCelebrities = [PostType.CharacterIntroduction, PostType.Announcement, PostType.Awards, PostType.Filmography, PostType.Birthday, PostType.Trivia].includes(postType);
+    const canLinkMovies = [PostType.Image, PostType.ProjectAnnouncement, PostType.Trailer, PostType.CharacterIntroduction, PostType.Countdown, PostType.Announcement, PostType.Awards, PostType.Anniversary, PostType.BoxOffice].includes(postType);
+    const canLinkCelebrities = [PostType.Image, PostType.CharacterIntroduction, PostType.Announcement, PostType.Awards, PostType.Filmography, PostType.Birthday, PostType.Trivia].includes(postType);
     
     if (!canLinkMovies && !canLinkCelebrities) return null;
 

@@ -80,16 +80,16 @@ const PostManagementView: React.FC<PostManagementViewProps> = ({
       </div>
       
       {/* Tabs for filtering */}
-      <div className="border-b border-slate-700">
-        <nav className="flex space-x-2 overflow-x-auto scrollbar-hide -mb-px">
+      <div className="border-b border-slate-700 pb-4">
+        <nav className="flex flex-wrap gap-2">
            {TABS.map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`${activeTab === tab 
-                ? 'border-purple-500 text-purple-300' 
-                : 'border-transparent text-slate-400 hover:text-white hover:border-slate-500'
-              } whitespace-nowrap py-3 px-3 border-b-2 font-medium text-sm transition-colors`}
+                ? 'bg-purple-600 text-white' 
+                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              } whitespace-nowrap py-2 px-3 rounded-full font-medium text-sm transition-colors`}
             >
               {tab}
             </button>

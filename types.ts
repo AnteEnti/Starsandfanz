@@ -191,11 +191,22 @@ export interface HypeLogEntry {
 }
 
 export interface UserProfileData {
+  id: number;
   name: string;
   avatar: string;
   favoriteStars: string[];
   favoriteMovies: string[];
   favoriteGenres: string[];
+  roles: string[];
+}
+
+export interface AdminUser {
+  id: number;
+  name: string;
+  avatar: string;
+  email: string;
+  registeredDate: string;
+  roles: string[];
 }
 
 export interface BannerContent {

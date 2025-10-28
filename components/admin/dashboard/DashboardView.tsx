@@ -64,5 +64,4 @@ const DashboardView: React.FC<DashboardViewProps> = ({ posts }) => {
   );
 };
 
-// FIX: Corrected typo in export statement from 'employability' to 'DashboardView'.
 export default DashboardView;

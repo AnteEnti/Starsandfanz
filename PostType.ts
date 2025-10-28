@@ -1,5 +1,5 @@
 export enum PostType {
-  Image = 'Image',
+  Image = 'fanzposters',
   Announcement = 'Announcement',
   ProjectAnnouncement = 'ProjectAnnouncement',
   Trailer = 'Trailer',

@@ -1,15 +1,15 @@
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { StarIcon } from './icons';
 import { BannerContent } from '../types';
 import HypeMeter from './HypeMeter';
+import { useAuth } from '../hooks/useAuth';
+import ProfileMenu from './auth/ProfileMenu';
 
 type ActiveView = 'feed' | 'profile' | 'admin' | 'favorites' | 'about' | 'terms' | 'contact' | 'disclaimer';
 
 interface HeaderProps {
   setActiveView: (view: ActiveView) => void;
-  userAvatar: string;
+  onLoginClick: () => void;
   favoriteStarAvatars: string[];
   isBannerVisible: boolean;
   bannerContent?: BannerContent;
@@ -24,8 +24,8 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
-  setActiveView, 
-  userAvatar, 
+  setActiveView,
+  onLoginClick,
   favoriteStarAvatars, 
   isBannerVisible, 
   bannerContent,
@@ -38,45 +38,37 @@ export const Header: React.FC<HeaderProps> = ({
   isCelebrationModeActive,
   isScrolled,
 }) => {
+  const { isAuthenticated, user, logout } = useAuth();
   const [isFlipped, setIsFlipped] = useState(false);
   const [avatarIndex, setAvatarIndex] = useState(0);
   
-  // Create a memoized list of all avatars to show. This array's reference will only change
-  // when the user's avatar or their favorite stars change.
-  const allAvatars = useMemo(() => [userAvatar, ...favoriteStarAvatars], [userAvatar, favoriteStarAvatars]);
+  const allAvatars = useMemo(() => {
+    if (user) {
+      return [user.avatar, ...favoriteStarAvatars];
+    }
+    return [];
+  }, [user, favoriteStarAvatars]);
   
   const frontAvatar = allAvatars[avatarIndex % allAvatars.length];
   const backAvatar = allAvatars.length > 1 ? allAvatars[(avatarIndex + 1) % allAvatars.length] : frontAvatar;
 
-  // This effect now depends directly on the `allAvatars` array. When its reference changes,
-  // the animation state is fully reset, and a new animation interval is created.
   useEffect(() => {
-    // When the list of avatars changes, reset the animation state.
     setAvatarIndex(0);
     setIsFlipped(false);
-
     if (allAvatars.length <= 1) {
-      return; // No need for an interval if there's only one image.
+      return;
     }
-
     const flipInterval = setInterval(() => {
         setIsFlipped(current => !current);
-    }, 4000); // Flip every 4 seconds
-
+    }, 4000);
     return () => clearInterval(flipInterval);
-  }, [allAvatars]); // Dependency on the memoized avatar list.
+  }, [allAvatars]);
 
-  // This effect handles swapping the underlying image source mid-animation.
-  // It also depends on `allAvatars` to ensure it uses the latest list.
   useEffect(() => {
     if (allAvatars.length <= 1 || !isFlipped) return;
-
-    // When the card flips to its back, set a timer to update the avatar index.
     const swapTimer = setTimeout(() => {
-        // Use a functional update to get the latest index and array length
         setAvatarIndex(current => (current + 1) % allAvatars.length);
-    }, 500); // Half of the 1s animation duration
-
+    }, 500);
     return () => clearTimeout(swapTimer);
   }, [isFlipped, allAvatars]);
 
@@ -106,42 +98,50 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           <div className="flex items-center gap-4">
-             <button 
-                className={`relative transition-all duration-300 ${isScrolled ? 'h-9 w-9' : 'h-10 w-10'} bg-transparent border-none p-0 cursor-pointer rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-800`}
-                style={{ perspective: '1000px' }}
-                onClick={() => setActiveView('profile')}
-                aria-label="View Profile"
-             >
-                <div 
-                    className="relative w-full h-full transition-transform duration-1000" 
-                    style={{ transformStyle: 'preserve-3d', transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
-                >
-                    {/* Front of the card */}
-                    <div className="absolute w-full h-full" style={{ backfaceVisibility: 'hidden' }}>
-                        <img 
-                            className="h-full w-full rounded-full border-2 border-purple-400 object-cover"
-                            src={frontAvatar}
-                            alt="User profile"
-                        />
-                    </div>
-                    {/* Back of the card */}
-                    <div className="absolute w-full h-full" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
-                         <img 
-                            className="h-full w-full rounded-full border-2 border-teal-400 object-cover"
-                            src={backAvatar}
-                            alt="Favorite star"
-                        />
-                    </div>
-                </div>
-            </button>
+             {isAuthenticated && user ? (
+               <div 
+                  className={`relative transition-all duration-300 ${isScrolled ? 'h-9 w-9' : 'h-10 w-10'} bg-transparent border-none p-0 cursor-pointer rounded-full focus:outline-none focus-within:ring-2 focus-within:ring-purple-500 focus-within:ring-offset-2 focus-within:ring-offset-slate-800`}
+                  style={{ perspective: '1000px' }}
+                  aria-label="Open user menu"
+               >
+                  <div 
+                      className="relative w-full h-full transition-transform duration-1000" 
+                      style={{ transformStyle: 'preserve-3d', transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
+                  >
+                      <div className="absolute w-full h-full" style={{ backfaceVisibility: 'hidden' }}>
+                          <img 
+                              className="h-full w-full rounded-full border-2 border-purple-400 object-cover"
+                              src={frontAvatar}
+                              alt="User profile"
+                          />
+                      </div>
+                      <div className="absolute w-full h-full" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
+                           <img 
+                              className="h-full w-full rounded-full border-2 border-teal-400 object-cover"
+                              src={backAvatar}
+                              alt="Favorite star"
+                          />
+                      </div>
+                  </div>
+                  <div className="absolute inset-0">
+                    <ProfileMenu onLogout={logout} onViewProfile={() => setActiveView('profile')} />
+                  </div>
+              </div>
+             ) : (
+              <button
+                onClick={onLoginClick}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-full transition duration-300 text-sm"
+              >
+                Log In
+              </button>
+             )}
           </div>
         </div>
       </div>
       
-      {/* Minimized Banner */}
       {isBannerVisible && bannerContent && (
          <div className="bg-slate-900/80 backdrop-blur-sm py-2 px-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3" onClick={onReopenBanner} role="button">
+            <div className="flex items-center gap-3 min-w-0" onClick={onReopenBanner} role="button">
                 <span className="material-symbols-outlined text-yellow-400 animate-pulse">celebration</span>
                 <p className="text-sm font-semibold text-white truncate">
                     <span className="font-black text-yellow-300">{bannerContent.headline1}</span> {bannerContent.headline2}

@@ -230,8 +230,23 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
             info.isMovie = true;
         }
         break;
+
+      case PostType.Image:
+        // For Image posts, the Event Title is the primary title.
+        info.name = post.eventDetails?.title || 'Image Post';
+        primarySubtitle = post.eventDetails?.subtitle || '';
         
-      default: // For Image, Announcement
+        // If linked to a celebrity or movie, use their avatar, otherwise keep the default.
+        if (celebrity) {
+          info.avatar = celebrity.imageUrl;
+        } else if (movie) {
+          info.avatar = movie.posterUrl;
+          info.isMovie = true;
+        }
+        break;
+        
+      case PostType.Announcement:
+      default: // For Announcement and other fallbacks
         if (celebrity && !movie) {
             info.avatar = celebrity.imageUrl;
             info.name = celebrity.name;
@@ -241,7 +256,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
             info.name = movie.title;
             primarySubtitle = post.eventDetails?.title || 'Update';
             info.isMovie = true;
+        } else if (post.eventDetails?.title) {
+             // Handle simple announcements that have an event title but aren't linked.
+            info.name = post.eventDetails.title;
+            primarySubtitle = post.eventDetails.subtitle || '';
         }
+        // If none of the above, the default `info` object (author name, default avatar) is used.
         break;
     }
     
@@ -366,25 +386,20 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
     }, 600); // Animation duration should match CSS
   };
   
-  const renderPostContent = () => {
-    // General purpose image takes precedence if it's not a specific visual post type
-    if (post.imageUrl && ![PostType.Trailer, PostType.MovieDetails, PostType.CharacterIntroduction, PostType.ProjectAnnouncement, PostType.Celebrity, PostType.Image, PostType.Anniversary].includes(post.type)) {
-      return <img className="w-full h-auto object-cover rounded-lg" src={post.imageUrl} alt="Post content" />;
-    }
-
+  const renderPostContent = useCallback(() => {
+    // A single, clear switch statement to handle all post types
     switch (post.type) {
       case PostType.Trailer:
-        return (
-          <VideoPlayer 
-            videoUrl={post.videoUrl!}
-            duration={post.videoDuration!}
-          />
-        );
+        return <VideoPlayer videoUrl={post.videoUrl!} duration={post.videoDuration!} />;
+
+      // These types show an image, often below the main text content, so add margin
       case PostType.Image:
-      case PostType.Anniversary:
+      case PostType.Announcement:
       case PostType.Birthday:
-        return post.imageUrl ? <img className="w-full h-auto object-cover rounded-lg" src={post.imageUrl} alt="Post content" /> : null;
+      case PostType.Anniversary:
+        return post.imageUrl ? <img className="w-full h-auto object-cover rounded-lg mt-4" src={post.imageUrl} alt="Post content" /> : null;
       
+      // COMPLEX EMBEDDED CONTENT
       case PostType.MovieDetails: {
         if (!post.movieDetails) return null;
         const { posterUrl, title, rating, synopsis, director, cast, genres } = post.movieDetails;
@@ -491,8 +506,6 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
       }
       case PostType.Countdown: {
         if (!post.countdownDetails) return null;
-        // The button is now rendered outside this function, in a static footer.
-        // This component only needs to render the scrollable image part.
         return (
           <div className="rounded-lg overflow-hidden">
             <img src={post.countdownDetails.imageUrl} alt="Countdown poster" className="w-full h-auto object-cover" />
@@ -597,13 +610,13 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
           </div>
         );
       }
-      case PostType.Announcement:
-         return post.imageUrl ? <img className="w-full h-auto object-cover rounded-lg" src={post.imageUrl} alt="Post content" /> : null;
       default:
-        return null;
+        // A generic fallback for any other post type that might have an image
+        // but isn't one of the complex types above.
+        return post.imageUrl ? <img className="w-full h-auto object-cover rounded-lg" src={post.imageUrl} alt="Post content" /> : null;
     }
-  };
-
+  }, [post, onViewFullPost, onViewMoviePage]);
+  
   const renderEventHeader = () => {
     if (!post.eventDetails) return null;
     
@@ -733,15 +746,19 @@ const PostCard: React.FC<PostCardProps> = ({ post, onReaction, onFanzSay, curren
         
         {/* Body */}
         <div className="flex-1 overflow-hidden px-5 pb-5 relative">
-          <div className={!isExpanded ? 'max-h-32 overflow-hidden' : ''}>
-              <p ref={contentRef} className="text-slate-300 mb-4 whitespace-pre-wrap">
-                {post.content}
-              </p>
-          </div>
-          {isOverflowing && (
-            <button onClick={() => setIsExpanded(!isExpanded)} className="text-purple-400 font-semibold hover:underline text-sm relative -top-3">
-              {isExpanded ? 'Read Less' : 'Read More...'}
-            </button>
+          {post.content && (
+            <>
+              <div className={!isExpanded ? 'max-h-32 overflow-hidden' : ''}>
+                  <p ref={contentRef} className="text-slate-300 mb-4 whitespace-pre-wrap">
+                    {post.content}
+                  </p>
+              </div>
+              {isOverflowing && (
+                <button onClick={() => setIsExpanded(!isExpanded)} className="text-purple-400 font-semibold hover:underline text-sm relative -top-3">
+                  {isExpanded ? 'Read Less' : 'Read More...'}
+                </button>
+              )}
+            </>
           )}
           {renderPostContent()}
         </div>
